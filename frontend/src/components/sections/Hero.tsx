@@ -1,5 +1,6 @@
 import Image from "next/image"
 import Container from "@/components/ui/Container"
+import HashLink from "@/components/ui/HashLink"
 import SectionBadge from "@/components/ui/SectionBadge"
 
 const highlights = [
@@ -47,18 +48,18 @@ export default function Hero() {
           </p>
 
           <div className="mt-[42px] flex flex-wrap gap-[14px]">
-            <a
+            <HashLink
               href="#features"
               className="flex h-[54px] items-center justify-center whitespace-nowrap rounded-full bg-brand-primary px-9 text-[15px] font-extrabold transition-colors duration-300 ease-out hover:bg-brand-primary-dark motion-reduce:transition-none"
             >
               <span className="text-white">주요 기능 보기</span>
-            </a>
-            <a
+            </HashLink>
+            <HashLink
               href="#contact"
               className="flex h-[54px] items-center justify-center whitespace-nowrap rounded-full border border-brand-border-light bg-white px-9 text-[15px] font-extrabold transition-colors duration-300 ease-out hover:bg-brand-soft motion-reduce:transition-none"
             >
               <span className="text-brand-blue-text">도입 상담 요청</span>
-            </a>
+            </HashLink>
           </div>
 
           <div className="mt-11 grid grid-cols-1 gap-3 min-[480px]:grid-cols-3">

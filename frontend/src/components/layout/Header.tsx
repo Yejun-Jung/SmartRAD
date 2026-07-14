@@ -1,7 +1,8 @@
 import Link from "next/link";
 import Container from "@/components/ui/Container";
+import HashLink from "@/components/ui/HashLink";
 
-const navigation = [
+const navigation: { label: string; href: `#${string}` }[] = [
   { label: "주요 기능", href: "#features" },
   { label: "장점", href: "#benefits" },
   { label: "요금제", href: "#pricing" },
@@ -28,7 +29,7 @@ export default function Header() {
           aria-label="주요 메뉴"
         >
           {navigation.map((item) => (
-            <a
+            <HashLink
               key={item.href}
               href={item.href}
               className="group text-[15px] font-extrabold tracking-[0]"
@@ -36,7 +37,7 @@ export default function Header() {
               <span className="text-brand-text transition-colors duration-300 ease-out group-hover:text-brand-primary motion-reduce:transition-none">
                 {item.label}
               </span>
-            </a>
+            </HashLink>
           ))}
         </nav>
 

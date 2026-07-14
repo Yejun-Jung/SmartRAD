@@ -2,6 +2,7 @@
 
 import Image from "next/image"
 import Link from "next/link"
+import HashLink from "@/components/ui/HashLink"
 
 const quickMenus = [
   {
@@ -20,9 +21,9 @@ const quickMenus = [
 
 const buttonClassName = `
   group
-  flex h-[76px] w-[76px]
+  flex h-14 w-14
   cursor-pointer items-center justify-center
-  rounded-[24px]
+  rounded-[18px]
   border border-brand-border
   bg-white
   shadow-[0_12px_28px_rgba(50,94,160,0.12)]
@@ -53,12 +54,12 @@ const buttonClassName = `
   motion-reduce:transform-none
   motion-reduce:transition-none
 
-  xl:h-[84px]
-  xl:w-[84px]
+  xl:h-16
+  xl:w-16
 `
 
 const iconClassName = `
-  h-[34px] w-[34px]
+  h-6 w-6
   object-contain
   transition-[filter] duration-300 ease-out
 
@@ -73,8 +74,7 @@ const iconClassName = `
 
   motion-reduce:transition-none
 
-  xl:h-[38px]
-  xl:w-[38px]
+  xl:h-7 xl:w-7
 `
 
 export default function QuickMenu() {
@@ -96,23 +96,22 @@ export default function QuickMenu() {
             <Image
               src={menu.icon}
               alt=""
-              width={38}
-              height={38}
+              width={28}
+              height={28}
               aria-hidden="true"
               className={iconClassName}
             />
           )
 
-          // 같은 페이지 내 해시 이동은 next/link보다 네이티브 앵커가 더 안정적으로 스크롤됨
           return menu.isHash ? (
-            <a
+            <HashLink
               key={menu.label}
               href={menu.href}
               aria-label={menu.label}
               className={buttonClassName}
             >
               {icon}
-            </a>
+            </HashLink>
           ) : (
             <Link
               key={menu.label}
@@ -134,8 +133,8 @@ export default function QuickMenu() {
           <Image
             src="/icons/quick-menu/top.svg"
             alt=""
-            width={38}
-            height={38}
+            width={28}
+            height={28}
             aria-hidden="true"
             className={iconClassName}
           />
