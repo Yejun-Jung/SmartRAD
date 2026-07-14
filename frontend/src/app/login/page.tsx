@@ -164,6 +164,8 @@ export default function LoginPage() {
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-700">
                 <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4 text-white">
                   <path d="M12 3 3 7.5 12 12l9-4.5L12 3Z" fill="currentColor" opacity="0.9" />
+                  <path d="M3 12.5 12 17l9-4.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M3 17 12 21.5 21 17" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
               <span className="hidden text-sm font-semibold text-slate-900 sm:inline">SmartHR</span>
@@ -181,6 +183,8 @@ export default function LoginPage() {
               <div className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-indigo-500 to-indigo-700">
                 <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5 text-white">
                   <path d="M12 3 3 7.5 12 12l9-4.5L12 3Z" fill="currentColor" opacity="0.9" />
+                  <path d="M3 12.5 12 17l9-4.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M3 17 12 21.5 21 17" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
               <span className="text-xs font-semibold text-slate-500">SmartHR</span>
