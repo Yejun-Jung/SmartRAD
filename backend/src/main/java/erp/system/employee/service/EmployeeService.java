@@ -37,17 +37,24 @@ public class EmployeeService {
         return EmployeeResponse.from(findActive(employeeId));
     }
 
-    public Page<EmployeeSummaryResponse> getList(String keyword, Pageable pageable) {
+    public Page<EmployeeSummaryResponse> getList(String keyword, Long departmentId, String status, Pageable pageable) {
         Specification<Employee> spec = (root, query, cb) -> {
-            if (!StringUtils.hasText(keyword)) {
-                return cb.conjunction();
+            var predicate = cb.conjunction();
+            if (StringUtils.hasText(keyword)) {
+                String pattern = "%" + keyword + "%";
+                predicate = cb.and(predicate, cb.or(
+                        cb.like(root.get("name"), pattern),
+                        cb.like(root.get("employeeNo"), pattern),
+                        cb.like(root.get("email"), pattern)
+                ));
             }
-            String pattern = "%" + keyword + "%";
-            return cb.or(
-                    cb.like(root.get("name"), pattern),
-                    cb.like(root.get("employeeNo"), pattern),
-                    cb.like(root.get("email"), pattern)
-            );
+            if (departmentId != null) {
+                predicate = cb.and(predicate, cb.equal(root.get("department").get("departmentId"), departmentId));
+            }
+            if (StringUtils.hasText(status)) {
+                predicate = cb.and(predicate, cb.equal(root.get("employeeStatusCode"), status));
+            }
+            return predicate;
         };
 
         return employeeRepository.findAll(spec, pageable).map(EmployeeSummaryResponse::from);
@@ -102,6 +109,12 @@ public class EmployeeService {
         );
 
         return EmployeeResponse.from(employee);
+    }
+
+    @Transactional
+    public void delete(Long employeeId) {
+        Employee employee = findActive(employeeId);
+        employeeRepository.delete(employee);
     }
 
     private Employee findActive(Long employeeId) {
