@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { BellIcon, UserPlusIcon } from "@heroicons/react/24/outline";
 import { dashboardMenuGroups } from "@/lib/dashboardMenu";
 
@@ -10,6 +10,7 @@ const flatItems = dashboardMenuGroups.flatMap((group) =>
 
 export default function DashboardHeader() {
   const pathname = usePathname();
+  const router = useRouter();
   const current = flatItems.find((item) => item.href === pathname) ?? flatItems[0];
 
   return (
@@ -33,7 +34,11 @@ export default function DashboardHeader() {
         <button className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50">
           <BellIcon className="w-5 h-5" />
         </button>
-        <button className="flex items-center gap-2 bg-[#4A5DDF] hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm">
+        <button
+          type="button"
+          onClick={() => router.push("/employees/new")}
+          className="flex items-center gap-2 bg-[#4A5DDF] hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm"
+        >
           <UserPlusIcon className="w-4 h-4" />
           직원 등록
         </button>
