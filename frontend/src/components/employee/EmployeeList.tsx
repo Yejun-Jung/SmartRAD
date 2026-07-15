@@ -141,6 +141,8 @@ export default function EmployeeList({ onSelectEmployee, selectedId, refreshKey 
 
   const isAllChecked = data && data.content.length > 0 && checkedIds.length === data.content.length;
 
+  const hasActiveFilters = sortBy !== "name" || selectedDepartment !== "" || selectedStatus !== "" || keyword !== "";
+
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col h-full">
       <div className="p-5 border-b border-gray-100 flex items-center justify-between">
@@ -208,7 +210,11 @@ export default function EmployeeList({ onSelectEmployee, selectedId, refreshKey 
         <button
           onClick={resetFilters}
           title="검색/필터 초기화"
-          className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 bg-white hover:bg-gray-50"
+          className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-colors ${
+            hasActiveFilters
+              ? "border-blue-500 bg-blue-500 text-white hover:bg-blue-600"
+              : "border-gray-200 text-gray-500 bg-white hover:bg-gray-50"
+          }`}
         >
           <ArrowPathIcon className="w-4 h-4" />
         </button>
