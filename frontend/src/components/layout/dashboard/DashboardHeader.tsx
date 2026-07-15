@@ -1,16 +1,31 @@
+"use client";
+
+import { usePathname } from "next/navigation";
 import { BellIcon, UserPlusIcon } from "@heroicons/react/24/outline";
+import { dashboardMenuGroups } from "@/lib/dashboardMenu";
+
+const flatItems = dashboardMenuGroups.flatMap((group) =>
+  group.items.map((item) => ({ ...item, groupTitle: group.title }))
+);
 
 export default function DashboardHeader() {
+  const pathname = usePathname();
+  const current = flatItems.find((item) => item.href === pathname) ?? flatItems[0];
+
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 z-10 sticky top-0">
       <div>
-        <h1 className="text-xl font-bold text-gray-900">직원 목록 조회</h1>
+        <h1 className="text-xl font-bold text-gray-900">{current.name}</h1>
         <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
           <span>홈</span>
+          {current.groupTitle !== "메인" && (
+            <>
+              <span>&gt;</span>
+              <span>{current.groupTitle}</span>
+            </>
+          )}
           <span>&gt;</span>
-          <span>인사 관리</span>
-          <span>&gt;</span>
-          <span className="text-blue-600 font-medium">직원 목록 조회</span>
+          <span className="text-blue-600 font-medium">{current.name}</span>
         </div>
       </div>
       
