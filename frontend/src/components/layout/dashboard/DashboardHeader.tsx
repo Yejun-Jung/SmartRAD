@@ -35,6 +35,7 @@ export default function DashboardHeader() {
   const isDailyAttendance = pathname === "/attendance/daily";
   const isMonthlyAttendance = pathname === "/attendance/monthly";
   const isLeaveApproval = pathname === "/leave/approve";
+  const isLeaveUsage = pathname === "/leave/status";
   const [monthlySelection, setMonthlySelection] = useState(currentMonth);
 
   useEffect(() => {
@@ -106,6 +107,8 @@ export default function DashboardHeader() {
             <button type="button" onClick={() => window.dispatchEvent(new CustomEvent("leave:approval-export"))} className="flex items-center gap-2 rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50"><ArrowDownTrayIcon className="h-4 w-4" />내보내기</button>
             <button type="button" onClick={() => window.dispatchEvent(new CustomEvent("leave:approval-pending"))} className="flex items-center gap-2 bg-[#4A5DDF] hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm"><ClockIcon className="h-4 w-4" />승인 대기</button>
           </>
+        ) : isLeaveUsage ? (
+          <button type="button" onClick={() => window.dispatchEvent(new CustomEvent("leave:usage-report"))} className="flex h-9 items-center gap-2 rounded-md border border-gray-200 bg-white px-4 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50"><ArrowDownTrayIcon className="h-4 w-4" />리포트 출력</button>
         ) : (
           <button
             type="button"
