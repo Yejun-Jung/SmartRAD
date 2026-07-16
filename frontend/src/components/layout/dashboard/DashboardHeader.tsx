@@ -37,6 +37,7 @@ export default function DashboardHeader() {
   const current = flatItems.find((item) => item.href === pathname) ?? flatItems[0];
   const isDailyAttendance = pathname === "/attendance/daily";
   const isMonthlyAttendance = pathname === "/attendance/monthly";
+  const isLeaveApproval = pathname === "/leave/approve";
   const [monthlySelection, setMonthlySelection] = useState(currentMonth);
 
   useEffect(() => {
