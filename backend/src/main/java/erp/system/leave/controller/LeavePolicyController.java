@@ -27,4 +27,10 @@ public class LeavePolicyController {
     public ResponseEntity<LeavePolicyResponse> create(@Valid @RequestBody LeavePolicyCreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(leavePolicyService.create(request));
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        leavePolicyService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
 }

@@ -72,6 +72,13 @@ export default function PayrollItemsPage() {
     fetchItems();
   }, []);
 
+  const earningTotal = items
+    .filter((item) => item.itemTypeCode === "EARNING" && item.active)
+    .reduce((sum, item) => sum + (item.defaultAmount ?? 0), 0);
+  const deductionTotal = items
+    .filter((item) => item.itemTypeCode === "DEDUCTION" && item.active)
+    .reduce((sum, item) => sum + (item.defaultAmount ?? 0), 0);
+
   const openModal = () => {
     setItemName("");
     setItemTypeCode("EARNING");
@@ -81,6 +88,40 @@ export default function PayrollItemsPage() {
     setRate("");
     setModalError("");
     setShowModal(true);
+  };
+
+  const deleteItem = async (item: PayrollItemMaster) => {
+    if (!window.confirm(`"${item.itemName}" 항목을 삭제하시겠습니까?`)) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/payroll-items/${item.payrollItemMasterId}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
+      if (!res.ok) {
+        const body: ErrorResponse = await res.json();
+        throw new Error(body.message || "급여항목 삭제에 실패했습니다.");
+      }
+      await fetchItems();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "급여항목 삭제에 실패했습니다.");
+    }
+  };
+
+  const toggleActive = async (item: PayrollItemMaster) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/payroll-items/${item.payrollItemMasterId}/active`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ active: !item.active }),
+      });
+      if (!res.ok) {
+        const body: ErrorResponse = await res.json();
+        throw new Error(body.message || "상태 변경에 실패했습니다.");
+      }
+      await fetchItems();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "상태 변경에 실패했습니다.");
+    }
   };
 
   const handleCreate = async () => {
@@ -137,6 +178,17 @@ export default function PayrollItemsPage() {
         <p className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-600">{errorMessage}</p>
       )}
 
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+          <p className="text-sm font-semibold text-emerald-700">지급 항목 합계 (사용중)</p>
+          <p className="mt-1 text-2xl font-extrabold text-emerald-800">{formatAmount(earningTotal)}</p>
+        </div>
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-5">
+          <p className="text-sm font-semibold text-rose-700">공제 항목 합계 (사용중)</p>
+          <p className="mt-1 text-2xl font-extrabold text-rose-800">{formatAmount(deductionTotal)}</p>
+        </div>
+      </div>
+
       <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
         <table className="w-full text-left text-sm">
           <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -148,16 +200,17 @@ export default function PayrollItemsPage() {
               <th className="px-4 py-3">기본금액</th>
               <th className="px-4 py-3">비율</th>
               <th className="px-4 py-3">상태</th>
+              <th className="px-4 py-3">관리</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {loading ? (
               <tr>
-                <td colSpan={7} className="px-4 py-6 text-center text-slate-400">불러오는 중...</td>
+                <td colSpan={8} className="px-4 py-6 text-center text-slate-400">불러오는 중...</td>
               </tr>
             ) : items.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-6 text-center text-slate-400">등록된 급여항목이 없습니다.</td>
+                <td colSpan={8} className="px-4 py-6 text-center text-slate-400">등록된 급여항목이 없습니다.</td>
               </tr>
             ) : (
               items.map((item) => (
@@ -179,9 +232,23 @@ export default function PayrollItemsPage() {
                   <td className="px-4 py-3 text-slate-600">{formatAmount(item.defaultAmount)}</td>
                   <td className="px-4 py-3 text-slate-600">{formatRate(item.rate)}</td>
                   <td className="px-4 py-3">
-                    <span className={`rounded-full px-2.5 py-1 text-xs font-bold ring-1 ${item.active ? "bg-indigo-50 text-indigo-700 ring-indigo-200" : "bg-slate-100 text-slate-500 ring-slate-200"}`}>
-                      {item.active ? "사용중" : "미사용"}
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() => toggleActive(item)}
+                      title="클릭하여 상태 전환"
+                      className={`rounded-full px-2.5 py-1 text-xs font-bold ring-1 transition-colors ${item.active ? "bg-indigo-50 text-indigo-700 ring-indigo-200 hover:bg-indigo-100" : "bg-slate-100 text-slate-500 ring-slate-200 hover:bg-slate-200"}`}
+                    >
+                      {item.active ? "사용중" : "사용해제"}
+                    </button>
+                  </td>
+                  <td className="px-4 py-3">
+                    <button
+                      type="button"
+                      onClick={() => deleteItem(item)}
+                      className="rounded-md border border-rose-200 px-2.5 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50"
+                    >
+                      삭제
+                    </button>
                   </td>
                 </tr>
               ))

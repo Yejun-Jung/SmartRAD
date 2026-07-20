@@ -57,8 +57,13 @@ function todayString() {
   return `${year}-${month}-${day}`;
 }
 
+function formatClock(value: Date) {
+  return value.toLocaleTimeString("ko-KR", { hour12: false });
+}
+
 export default function SelfAttendancePage() {
   const [today] = useState(todayString());
+  const [now, setNow] = useState(() => new Date());
   const [record, setRecord] = useState<AttendanceResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -91,6 +96,11 @@ export default function SelfAttendancePage() {
   useEffect(() => {
     fetchToday();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 1000);
+    return () => window.clearInterval(timer);
   }, []);
 
   const handleCheckIn = async () => {
@@ -151,6 +161,10 @@ export default function SelfAttendancePage() {
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
               <ClockIcon className="h-8 w-8" />
             </div>
+
+            <p className="font-mono text-4xl font-extrabold tracking-wide text-slate-900" aria-live="polite">
+              {formatClock(now)}
+            </p>
 
             <div className="grid w-full max-w-md grid-cols-2 gap-4 text-center">
               <div className="rounded-xl bg-slate-50 p-4">

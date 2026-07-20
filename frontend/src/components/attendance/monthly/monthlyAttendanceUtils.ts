@@ -33,7 +33,7 @@ export function aggregateMonthly(
     const daily = { normal: 0, late: 0, absent: 0, leave: 0 };
     records.forEach((record) => {
       const status = normalizeAttendanceStatus(record.attendanceStatusCode);
-      if (status === "unknown") return;
+      if (status === "unknown" || status === "earlyLeave") return;
       daily[status] += 1;
       totals[status] += 1;
       const counter = counters.get(record.employeeId) ?? { normal: 0, late: 0, absent: 0, leave: 0 };

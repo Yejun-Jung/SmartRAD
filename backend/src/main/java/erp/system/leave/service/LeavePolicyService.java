@@ -43,4 +43,12 @@ public class LeavePolicyService {
 
         return LeavePolicyResponse.from(leavePolicyRepository.save(leavePolicy));
     }
+
+    @Transactional
+    public void delete(Long leavePolicyId) {
+        if (!leavePolicyRepository.existsById(leavePolicyId)) {
+            throw new BusinessException(ErrorCode.LEAVE_POLICY_NOT_FOUND);
+        }
+        leavePolicyRepository.deleteById(leavePolicyId);
+    }
 }

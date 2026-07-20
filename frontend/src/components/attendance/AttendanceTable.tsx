@@ -10,6 +10,7 @@ const inputClass = "h-9 rounded-lg border border-gray-200 bg-white px-3 text-sm 
 const badgeStyles: Record<AttendanceStatus, string> = {
   normal: "bg-emerald-50 text-emerald-700",
   late: "bg-amber-50 text-amber-700",
+  earlyLeave: "bg-orange-50 text-orange-700",
   absent: "bg-rose-50 text-rose-700",
   leave: "bg-sky-50 text-sky-700",
   unknown: "bg-gray-100 text-gray-600",
@@ -84,7 +85,7 @@ export default function AttendanceTable({ rows, departments, date, loading, erro
               {departments.map((item) => <option key={item.departmentId} value={item.departmentName}>{item.departmentName}</option>)}
             </select>
             <select value={status} onChange={(event) => { setStatus(event.target.value); setPage(0); setCheckedIds([]); }} className={inputClass} aria-label="상태 필터">
-              <option value="">상태 전체</option><option value="normal">정상출근</option><option value="late">지각</option><option value="absent">결근</option><option value="leave">휴가</option><option value="unknown">미확인</option>
+              <option value="">상태 전체</option><option value="normal">정상출근</option><option value="late">지각</option><option value="earlyLeave">조퇴</option><option value="absent">결근</option><option value="leave">휴가</option><option value="unknown">미확인</option>
             </select>
             <div className="relative min-w-[190px] flex-1 sm:max-w-64">
               <button type="button" onClick={runSearch} aria-label="직원 검색" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-600"><MagnifyingGlassIcon className="h-4 w-4" /></button>

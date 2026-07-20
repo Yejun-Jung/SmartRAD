@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MagnifyingGlassIcon, ArrowPathIcon, ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
+import { MagnifyingGlassIcon, ArrowPathIcon, ChevronLeftIcon, ChevronRightIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import type { NoticeDetail, NoticePage, NoticeSummary } from "./types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081/api";
@@ -31,6 +31,7 @@ export default function NoticeList({ refreshKey, onActionComplete, onEdit }: Pro
   const [checkedIds, setCheckedIds] = useState<number[]>([]);
   const [actionError, setActionError] = useState<string | null>(null);
   const [internalRefresh, setInternalRefresh] = useState(0);
+  const [viewingNotice, setViewingNotice] = useState<NoticeDetail | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -82,6 +83,17 @@ export default function NoticeList({ refreshKey, onActionComplete, onEdit }: Pro
   const allChecked = rows.length > 0 && rows.every((row) => checkedIds.includes(row.noticeId));
   const toggleAll = () => setCheckedIds(allChecked ? [] : rows.map((row) => row.noticeId));
   const toggleOne = (id: number) => setCheckedIds((ids) => ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]);
+
+  const openView = async (noticeId: number) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/notices/${noticeId}`, { headers: authHeaders() });
+      if (!res.ok) throw new Error();
+      const detail = (await res.json()) as NoticeDetail;
+      setViewingNotice(detail);
+    } catch {
+      setActionError("공지사항을 불러오지 못했습니다.");
+    }
+  };
 
   const openEdit = async (noticeId: number) => {
     try {
@@ -239,7 +251,9 @@ export default function NoticeList({ refreshKey, onActionComplete, onEdit }: Pro
                     </td>
                     <td className="py-3 px-4 text-sm font-medium text-gray-900">
                       {row.pinned && <span className="mr-1.5 text-orange-500">📌</span>}
-                      {row.title}
+                      <button type="button" onClick={() => openView(row.noticeId)} className="text-left hover:underline hover:text-blue-600">
+                        {row.title}
+                      </button>
                     </td>
                     <td className="py-3 px-4 text-sm text-gray-600 text-center whitespace-nowrap">{row.writerName}</td>
                     <td className="py-3 px-4 text-sm text-gray-600 text-center whitespace-nowrap">{formatDate(row.createdAt)}</td>
@@ -249,6 +263,7 @@ export default function NoticeList({ refreshKey, onActionComplete, onEdit }: Pro
                     </td>
                     <td className="py-3 px-4 text-sm text-center whitespace-nowrap">
                       <div className="flex justify-center gap-1.5">
+                        <button type="button" onClick={() => openView(row.noticeId)} className="px-2.5 py-1 rounded-md border border-gray-200 text-gray-600 text-xs font-semibold hover:bg-gray-50">보기</button>
                         <button type="button" onClick={() => openEdit(row.noticeId)} className="px-2.5 py-1 rounded-md border border-gray-200 text-gray-600 text-xs font-semibold hover:bg-gray-50">수정</button>
                         <button type="button" onClick={() => deleteOne(row.noticeId)} className="px-2.5 py-1 rounded-md border border-rose-200 text-rose-600 text-xs font-semibold hover:bg-rose-50">삭제</button>
                       </div>
@@ -271,6 +286,38 @@ export default function NoticeList({ refreshKey, onActionComplete, onEdit }: Pro
           </div>
         </div>
       </div>
+
+      {viewingNotice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4" role="dialog" aria-modal="true">
+          <div className="max-h-[85vh] w-full max-w-2xl overflow-auto rounded-xl bg-white shadow-xl">
+            <div className="flex items-start justify-between gap-4 border-b border-gray-200 p-5">
+              <div>
+                {viewingNotice.pinned && <span className="mr-1.5 text-orange-500">📌</span>}
+                <h2 className="inline text-lg font-bold text-gray-900">{viewingNotice.title}</h2>
+                <p className="mt-2 text-sm text-gray-500">
+                  {viewingNotice.writerName} · {formatDate(viewingNotice.createdAt)} · 조회 {viewingNotice.viewCount}
+                </p>
+              </div>
+              <button type="button" onClick={() => setViewingNotice(null)} aria-label="닫기" className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+                <XMarkIcon className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="whitespace-pre-wrap p-6 text-sm leading-relaxed text-gray-700">
+              {viewingNotice.content}
+            </div>
+            <div className="flex justify-end gap-2 border-t border-gray-200 p-4">
+              <button type="button" onClick={() => setViewingNotice(null)} className="rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50">닫기</button>
+              <button
+                type="button"
+                onClick={() => { const notice = viewingNotice; setViewingNotice(null); onEdit(notice); }}
+                className="rounded-md bg-[#4A5DDF] px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              >
+                수정하기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

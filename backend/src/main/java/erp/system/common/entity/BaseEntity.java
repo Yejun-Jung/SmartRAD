@@ -15,4 +15,8 @@ public abstract class BaseEntity extends  DeleteTableEntity{
         super.markDeleted();
         this.active=false;
     }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
 }

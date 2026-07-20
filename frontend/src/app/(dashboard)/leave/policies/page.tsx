@@ -82,6 +82,23 @@ export default function LeavePoliciesPage() {
     setShowModal(true);
   };
 
+  const deletePolicy = async (policy: LeavePolicy) => {
+    if (!window.confirm(`${policy.positionName ?? "이 직책"}의 휴가정책을 삭제하시겠습니까?`)) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/leave-policies/${policy.leavePolicyId}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
+      if (!res.ok) {
+        const body: ErrorResponse = await res.json();
+        throw new Error(body.message || "휴가정책 삭제에 실패했습니다.");
+      }
+      await fetchAll();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "휴가정책 삭제에 실패했습니다.");
+    }
+  };
+
   const handleCreate = async () => {
     if (!positionId) {
       setModalError("직책을 선택해주세요.");
@@ -145,16 +162,17 @@ export default function LeavePoliciesPage() {
               <th className="px-4 py-3">이월 한도</th>
               <th className="px-4 py-3">반차 허용</th>
               <th className="px-4 py-3">비고</th>
+              <th className="px-4 py-3">관리</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {loading ? (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-slate-400">불러오는 중...</td>
+                <td colSpan={6} className="px-4 py-6 text-center text-slate-400">불러오는 중...</td>
               </tr>
             ) : policies.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-slate-400">등록된 휴가정책이 없습니다.</td>
+                <td colSpan={6} className="px-4 py-6 text-center text-slate-400">등록된 휴가정책이 없습니다.</td>
               </tr>
             ) : (
               policies.map((policy) => (
@@ -164,6 +182,15 @@ export default function LeavePoliciesPage() {
                   <td className="px-4 py-3 text-slate-600">{policy.maxCarryOverDays ?? "-"}일</td>
                   <td className="px-4 py-3 text-slate-600">{policy.halfDayAllowed ? "가능" : "불가"}</td>
                   <td className="px-4 py-3 text-slate-500">{policy.note ?? "-"}</td>
+                  <td className="px-4 py-3">
+                    <button
+                      type="button"
+                      onClick={() => deletePolicy(policy)}
+                      className="rounded-md border border-rose-200 px-2.5 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50"
+                    >
+                      삭제
+                    </button>
+                  </td>
                 </tr>
               ))
             )}

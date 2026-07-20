@@ -1,5 +1,6 @@
 package erp.system.payroll.controller;
 
+import erp.system.payroll.dto.PayrollItemActiveUpdateRequest;
 import erp.system.payroll.dto.PayrollItemMasterCreateRequest;
 import erp.system.payroll.dto.PayrollItemMasterResponse;
 import erp.system.payroll.service.PayrollItemMasterService;
@@ -26,5 +27,16 @@ public class PayrollItemMasterController {
     @PostMapping
     public ResponseEntity<PayrollItemMasterResponse> create(@Valid @RequestBody PayrollItemMasterCreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(payrollItemMasterService.create(request));
+    }
+
+    @PatchMapping("/{id}/active")
+    public PayrollItemMasterResponse updateActive(@PathVariable Long id, @Valid @RequestBody PayrollItemActiveUpdateRequest request) {
+        return payrollItemMasterService.updateActive(id, request.active());
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        payrollItemMasterService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 }
