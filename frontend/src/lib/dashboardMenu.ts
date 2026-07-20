@@ -21,42 +21,42 @@ export const dashboardMenuGroups = [
   {
     title: "메인",
     items: [
-      { name: "대시보드", href: "/dashboard", icon: HomeIcon }
+      { name: "대시보드", href: "/dashboard", icon: HomeIcon, adminOnly: false }
     ]
   },
   {
     title: "인사 관리",
     items: [
-      { name: "직원 목록 조회", href: "/employees", icon: UsersIcon },
-      { name: "신규 직원 등록", href: "/employees/new", icon: UserPlusIcon },
-      { name: "인사 발령 관리", href: "/appointments", icon: ArrowPathIcon },
-      { name: "제증명서 관리", href: "/certificates", icon: DocumentTextIcon },
+      { name: "직원 목록 조회", href: "/employees", icon: UsersIcon, adminOnly: false },
+      { name: "신규 직원 등록", href: "/employees/new", icon: UserPlusIcon, adminOnly: true },
+      { name: "인사 발령 관리", href: "/appointments", icon: ArrowPathIcon, adminOnly: true },
+      { name: "제증명서 관리", href: "/certificates", icon: DocumentTextIcon, adminOnly: true },
     ]
   },
   {
     title: "근태 및 휴가 관리",
     items: [
-      { name: "내 근태 체크", href: "/attendance/self", icon: FingerPrintIcon },
-      { name: "일일 근태 현황", href: "/attendance/daily", icon: ClockIcon },
-      { name: "월간 근태 통계", href: "/attendance/monthly", icon: ChartBarIcon },
-      { name: "휴가 승인/관리", href: "/leave/approve", icon: CheckBadgeIcon },
-      { name: "휴가 사용 현황", href: "/leave/status", icon: CalendarIcon },
-      { name: "휴가정책 관리", href: "/leave/policies", icon: AdjustmentsHorizontalIcon },
+      { name: "내 근태 체크", href: "/attendance/self", icon: FingerPrintIcon, adminOnly: false },
+      { name: "일일 근태 현황", href: "/attendance/daily", icon: ClockIcon, adminOnly: true },
+      { name: "월간 근태 통계", href: "/attendance/monthly", icon: ChartBarIcon, adminOnly: true },
+      { name: "휴가 승인/관리", href: "/leave/approve", icon: CheckBadgeIcon, adminOnly: true },
+      { name: "휴가 사용 현황", href: "/leave/status", icon: CalendarIcon, adminOnly: true },
+      { name: "휴가정책 관리", href: "/leave/policies", icon: AdjustmentsHorizontalIcon, adminOnly: true },
     ]
   },
   {
     title: "급여 관리",
     items: [
-      { name: "급여 기본정보 관리", href: "/payroll/basic", icon: CurrencyDollarIcon },
-      { name: "급여 계산", href: "/payroll/calculate", icon: CalculatorIcon },
-      { name: "급여 지급 처리", href: "/payroll/process", icon: BanknotesIcon },
-      { name: "급여항목 관리", href: "/payroll/items", icon: TagIcon },
+      { name: "급여 기본정보 관리", href: "/payroll/basic", icon: CurrencyDollarIcon, adminOnly: true },
+      { name: "급여 계산", href: "/payroll/calculate", icon: CalculatorIcon, adminOnly: true },
+      { name: "급여 지급 처리", href: "/payroll/process", icon: BanknotesIcon, adminOnly: true },
+      { name: "급여항목 관리", href: "/payroll/items", icon: TagIcon, adminOnly: true },
     ]
   },
   {
     title: "사내 소통",
     items: [
-      { name: "공지사항 관리", href: "/notices", icon: MegaphoneIcon },
+      { name: "공지사항 관리", href: "/notices", icon: MegaphoneIcon, adminOnly: true },
     ]
   }
 ];

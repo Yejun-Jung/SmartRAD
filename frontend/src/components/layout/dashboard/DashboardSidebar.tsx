@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ArrowRightStartOnRectangleIcon } from "@heroicons/react/24/outline";
 import { dashboardMenuGroups as menuGroups } from "@/lib/dashboardMenu";
-import { clearAuthStorage } from "@/lib/auth";
+import { clearAuthStorage, isAdmin } from "@/lib/auth";
 import Logo from "@/components/ui/Logo";
 
 function getStoredValue(key: string) {
@@ -17,12 +17,14 @@ export default function DashboardSidebar() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [employeeName, setEmployeeName] = useState("");
   const [employeeEmail, setEmployeeEmail] = useState("");
+  const [admin, setAdmin] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
 
   useEffect(() => {
     setEmployeeName(getStoredValue("employeeName") ?? "");
     setEmployeeEmail(getStoredValue("employeeEmail") ?? "");
+    setAdmin(isAdmin());
   }, []);
 
   const handleLogout = () => {
@@ -33,7 +35,9 @@ export default function DashboardSidebar() {
 
   const filteredGroups = menuGroups.map(group => ({
     ...group,
-    items: group.items.filter(item => item.name.includes(searchQuery))
+    items: group.items
+      .filter(item => admin || !item.adminOnly)
+      .filter(item => item.name.includes(searchQuery))
   })).filter(group => group.items.length > 0);
 
   return (
