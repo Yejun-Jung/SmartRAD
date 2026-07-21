@@ -37,7 +37,7 @@ export interface Department {
   parentDepartmentName: string | null;
 }
 
-export type AttendanceStatus = "normal" | "late" | "earlyLeave" | "overtime" | "absent" | "leave" | "unknown";
+export type AttendanceStatus = "normal" | "late" | "earlyLeave" | "overtime" | "nightWork" | "absent" | "leave" | "unknown";
 
 export interface AttendanceRow extends AttendanceResponse {
   employeeNo: string | null;
@@ -64,6 +64,8 @@ export function normalizeAttendanceStatus(status: string | null): AttendanceStat
       return "earlyLeave";
     case "OVERTIME":
       return "overtime";
+    case "NIGHT_WORK":
+      return "nightWork";
     case "ABSENT":
       return "absent";
     case "LEAVE":
@@ -80,6 +82,7 @@ export function attendanceStatusLabel(row: AttendanceRow) {
     late: "지각",
     earlyLeave: "조퇴",
     overtime: "추가근무",
+    nightWork: "야근",
     absent: "결근",
     leave: "휴가",
     unknown: row.attendanceStatusCode || "미확인",

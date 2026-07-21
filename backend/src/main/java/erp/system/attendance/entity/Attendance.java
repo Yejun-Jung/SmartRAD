@@ -26,9 +26,12 @@ public class Attendance extends BaseEntity {
     public static final String STATUS_EARLY_LEAVE = "EARLY_LEAVE";
     public static final String STATUS_ABSENT = "ABSENT";
     public static final String STATUS_OVERTIME = "OVERTIME";
+    public static final String STATUS_NIGHT_WORK = "NIGHT_WORK";
 
     private static final LocalTime STANDARD_START_TIME = LocalTime.of(9, 0);
     private static final LocalTime STANDARD_END_TIME = LocalTime.of(18, 0);
+    private static final LocalTime OVERTIME_STATUS_START_TIME = LocalTime.of(19, 0);
+    private static final LocalTime NIGHT_WORK_STATUS_START_TIME = LocalTime.of(21, 0);
     private static final LocalTime NIGHT_WORK_START_TIME = LocalTime.of(22, 0);
     private static final int STANDARD_WORK_MINUTES = 480;
 
@@ -128,12 +131,15 @@ public class Attendance extends BaseEntity {
         this.earlyLeaveMinutes = (int) Math.max(0, Duration.between(checkOutTime.toLocalTime(), STANDARD_END_TIME).toMinutes());
         this.nightWorkMinutes = calculateNightWorkMinutes(checkOutTime);
 
-        boolean isOvertimeCheckout = checkOutTime.toLocalTime().isAfter(STANDARD_END_TIME);
+        boolean isNightWorkCheckout = checkOutTime.toLocalTime().isAfter(NIGHT_WORK_STATUS_START_TIME);
+        boolean isOvertimeCheckout = checkOutTime.toLocalTime().isAfter(OVERTIME_STATUS_START_TIME);
 
         if (this.lateMinutes != null && this.lateMinutes > 0) {
             this.attendanceStatusCode = STATUS_LATE;
         } else if (this.earlyLeaveMinutes > 0) {
             this.attendanceStatusCode = STATUS_EARLY_LEAVE;
+        } else if (isNightWorkCheckout) {
+            this.attendanceStatusCode = STATUS_NIGHT_WORK;
         } else if (isOvertimeCheckout) {
             this.attendanceStatusCode = STATUS_OVERTIME;
         } else {
