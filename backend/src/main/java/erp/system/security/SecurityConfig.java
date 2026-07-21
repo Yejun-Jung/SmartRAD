@@ -86,6 +86,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/notices/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/notices/**").hasRole("ADMIN")
 
+                        // AI 비서 - 로그인만 하면 가능 (본인 데이터만 근거로 답변)
+                        .requestMatchers(HttpMethod.POST, "/api/assistant/**").authenticated()
+
                         // 급여 - 본인 명세서 조회는 로그인만 하면 가능, 계산/지급처리/항목관리/수당관리는 관리자 전용
                         .requestMatchers(HttpMethod.GET, "/api/payrolls/me", "/api/payrolls/me/*").authenticated()
                         .requestMatchers("/api/payrolls/**").hasRole("ADMIN")

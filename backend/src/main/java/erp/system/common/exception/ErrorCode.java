@@ -40,6 +40,8 @@ public enum ErrorCode {
     PAYROLL_ACCOUNT_NOT_REGISTERED(HttpStatus.BAD_REQUEST, "급여 계좌 정보가 등록되지 않았습니다."),
     NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, "공지사항을 찾을 수 없습니다."),
     ACCESS_DENIED(HttpStatus.FORBIDDEN, "접근 권한이 없습니다."),
+    ASSISTANT_NOT_CONFIGURED(HttpStatus.SERVICE_UNAVAILABLE, "AI 비서 기능이 아직 설정되지 않았습니다."),
+    ASSISTANT_REQUEST_FAILED(HttpStatus.BAD_GATEWAY, "AI 응답을 가져오지 못했습니다. 잠시 후 다시 시도해주세요."),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 오류가 발생했습니다.");
 
 
