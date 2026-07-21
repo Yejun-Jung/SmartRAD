@@ -6,6 +6,7 @@ import {
   ArrowPathIcon,
   DocumentTextIcon,
   CalendarIcon,
+  CalendarDaysIcon,
   ChartBarIcon,
   CheckBadgeIcon,
   ClockIcon,
@@ -39,6 +40,7 @@ export const dashboardMenuGroups = [
     title: "근태 및 휴가 관리",
     items: [
       { name: "내 근태 체크", href: "/attendance/self", icon: FingerPrintIcon, adminOnly: false },
+      { name: "내 근태 현황", href: "/attendance/my", icon: CalendarDaysIcon, adminOnly: false, userOnly: true },
       { name: "일일 근태 현황", href: "/attendance/daily", icon: ClockIcon, adminOnly: true },
       { name: "월간 근태 통계", href: "/attendance/monthly", icon: ChartBarIcon, adminOnly: true },
       { name: "휴가 승인/관리", href: "/leave/approve", icon: CheckBadgeIcon, adminOnly: true },

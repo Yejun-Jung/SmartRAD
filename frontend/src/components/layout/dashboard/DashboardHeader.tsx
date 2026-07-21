@@ -35,8 +35,8 @@ export default function DashboardHeader() {
   const current =
     flatItems.find((item) => item.href === pathname) ?? flatItems[0]
   const isDailyAttendance = pathname === "/attendance/daily"
-  const isMonthlyAttendance = pathname === "/attendance/monthly"
   const isSelfAttendance = pathname === "/attendance/self"
+  const isMyAttendance = pathname === "/attendance/my"
   const isLeaveApproval = pathname === "/leave/approve"
   const isLeaveUsage = pathname === "/leave/status"
   const [monthlySelection, setMonthlySelection] = useState(currentMonth)
@@ -84,6 +84,7 @@ export default function DashboardHeader() {
         <button className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50">
           <BellIcon className="w-5 h-5" />
         </button>
+
         {isSelfAttendance ? (
           <button
             type="button"
@@ -118,6 +119,7 @@ export default function DashboardHeader() {
               <ArrowDownTrayIcon className="h-4 w-4" />
               내보내기
             </button>
+
             <button
               type="button"
               onClick={() =>
@@ -141,6 +143,7 @@ export default function DashboardHeader() {
               <ArrowDownTrayIcon className="h-4 w-4" />
               일괄 다운로드
             </button>
+
             <button
               type="button"
               onClick={() =>
@@ -175,6 +178,7 @@ export default function DashboardHeader() {
               <ArrowDownTrayIcon className="h-4 w-4" />
               내보내기
             </button>
+
             <button
               type="button"
               onClick={() =>
@@ -197,7 +201,7 @@ export default function DashboardHeader() {
             <ArrowDownTrayIcon className="h-4 w-4" />
             리포트 출력
           </button>
-        ) : (
+        ) : isMyAttendance ? null : (
           role === "ADMIN" && (
             <button
               type="button"
