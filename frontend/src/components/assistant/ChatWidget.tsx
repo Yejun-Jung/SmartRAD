@@ -62,7 +62,7 @@ export default function ChatWidget() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-[90]">
+    <div className="fixed bottom-6 right-6 z-[90] flex flex-col items-end">
       {open && (
         <div className="mb-3 flex h-[480px] w-80 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
           <div className="flex items-center justify-between border-b border-slate-200 bg-indigo-600 px-4 py-3 text-white">
@@ -93,28 +93,30 @@ export default function ChatWidget() {
             )}
           </div>
 
-          <div className="flex items-center gap-2 border-t border-slate-200 p-3">
-            <input
-              value={input}
-              onChange={(event) => setInput(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && !event.shiftKey) {
-                  event.preventDefault();
-                  send();
-                }
-              }}
-              placeholder="예: 연차 며칠 남았어?"
-              className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
-            />
-            <button
-              type="button"
-              onClick={send}
-              disabled={loading || !input.trim()}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-white disabled:cursor-not-allowed disabled:opacity-40"
-              aria-label="전송"
-            >
-              <PaperAirplaneIcon className="h-4 w-4" />
-            </button>
+          <div className="border-t border-slate-200 p-3">
+            <div className="relative">
+              <input
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    send();
+                  }
+                }}
+                placeholder="예: 연차 며칠 남았어?"
+                className="w-full rounded-lg border border-slate-200 py-2 pl-3 pr-10 text-sm outline-none focus:border-indigo-400"
+              />
+              <button
+                type="button"
+                onClick={send}
+                disabled={loading || !input.trim()}
+                className="absolute right-1.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md bg-indigo-600 text-white disabled:cursor-not-allowed disabled:opacity-40"
+                aria-label="전송"
+              >
+                <PaperAirplaneIcon className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
         </div>
       )}
