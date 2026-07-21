@@ -37,6 +37,7 @@ export default function DashboardHeader() {
   const isDailyAttendance = pathname === "/attendance/daily"
   const isSelfAttendance = pathname === "/attendance/self"
   const isMyAttendance = pathname === "/attendance/my"
+  const isMyLeave = pathname === "/leave/my"
   const isLeaveApproval = pathname === "/leave/approve"
   const isLeaveUsage = pathname === "/leave/status"
   const [monthlySelection, setMonthlySelection] = useState(currentMonth)
@@ -201,7 +202,7 @@ export default function DashboardHeader() {
             <ArrowDownTrayIcon className="h-4 w-4" />
             리포트 출력
           </button>
-        ) : isMyAttendance ? null : (
+        ) : isMyAttendance || isMyLeave ? null : (
           role === "ADMIN" && (
             <button
               type="button"

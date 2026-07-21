@@ -41,6 +41,7 @@ export const dashboardMenuGroups = [
     items: [
       { name: "내 근태 체크", href: "/attendance/self", icon: FingerPrintIcon, adminOnly: false },
       { name: "내 근태 현황", href: "/attendance/my", icon: CalendarDaysIcon, adminOnly: false, userOnly: true },
+      { name: "휴가 신청/내역 조회", href: "/leave/my", icon: CalendarIcon, adminOnly: false, userOnly: true },
       { name: "일일 근태 현황", href: "/attendance/daily", icon: ClockIcon, adminOnly: true },
       { name: "월간 근태 통계", href: "/attendance/monthly", icon: ChartBarIcon, adminOnly: true },
       { name: "휴가 승인/관리", href: "/leave/approve", icon: CheckBadgeIcon, adminOnly: true },
