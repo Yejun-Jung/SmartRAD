@@ -55,8 +55,8 @@ public class GeminiClient implements AiClient {
             GeminiResponse response = restClient.post()
                     .uri(uriBuilder -> uriBuilder
                             .path("/v1beta/models/{model}:generateContent")
-                            .queryParam("key", apiKey)
                             .build(model))
+                    .header("X-goog-api-key", apiKey)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(request)
                     .retrieve()

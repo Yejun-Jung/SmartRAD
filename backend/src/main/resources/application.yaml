@@ -30,4 +30,4 @@ anthropic:
 
 gemini:
   api-key: ${GEMINI_API_KEY:}
-  model: ${GEMINI_MODEL:gemini-2.0-flash-lite}
+  model: ${GEMINI_MODEL:gemini-flash-latest}
