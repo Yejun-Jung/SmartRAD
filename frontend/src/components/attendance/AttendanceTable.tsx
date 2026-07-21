@@ -116,7 +116,21 @@ export default function AttendanceTable({ rows, departments, date, loading, erro
                   <td className="px-4 py-4"><div className="flex items-center gap-3"><div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700">{row.employeeName.charAt(0) || '?'}</div><div><p className="font-medium text-gray-900">{row.employeeName}</p>{row.employeeNo && <p className="text-xs text-gray-400">{row.employeeNo}</p>}</div></div></td>
                   <td className="whitespace-nowrap px-4 py-4 text-gray-600">{row.departmentName || '-'}</td><td className="whitespace-nowrap px-4 py-4 text-gray-600">{row.positionName || '-'}</td>
                   <td className="whitespace-nowrap px-4 py-4 text-gray-600">{formatTime(row.checkInTime)}</td><td className="whitespace-nowrap px-4 py-4 text-gray-600">{formatTime(row.checkOutTime)}</td><td className="whitespace-nowrap px-4 py-4 text-gray-600">{formatMinutes(row.workMinutes)}</td>
-                  <td className="whitespace-nowrap px-4 py-4"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${badgeStyles[row.normalizedStatus]}`}>{attendanceStatusLabel(row)}</span></td><td className="px-4 py-4 text-gray-500">-</td>
+                  <td className="whitespace-nowrap px-4 py-4"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${badgeStyles[row.normalizedStatus]}`}>{attendanceStatusLabel(row)}</span></td>
+                  <td className="max-w-[220px] px-4 py-4 text-gray-500">
+                    {row.reason ? (
+                      <div>
+                        <p className="truncate" title={row.reason}>{row.reason}</p>
+                        {row.attachmentUrl && (
+                          <a href={`${(process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081/api").replace(/\/api\/?$/, "")}${row.attachmentUrl}`} target="_blank" rel="noreferrer" className="text-xs text-blue-600 hover:underline">
+                            {row.attachmentName || "첨부파일"}
+                          </a>
+                        )}
+                      </div>
+                    ) : (
+                      "-"
+                    )}
+                  </td>
                 </tr>
               ))}
           </tbody>

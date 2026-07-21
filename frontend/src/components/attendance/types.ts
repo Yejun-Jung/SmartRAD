@@ -11,6 +11,9 @@ export interface AttendanceResponse {
   lateMinutes: number | null;
   earlyLeaveMinutes: number | null;
   attendanceStatusCode: string | null;
+  reason: string | null;
+  attachmentUrl: string | null;
+  attachmentName: string | null;
 }
 
 export interface EmployeeSummary {

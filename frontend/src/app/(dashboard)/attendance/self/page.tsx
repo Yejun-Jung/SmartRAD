@@ -10,6 +10,7 @@ import {
   FingerPrintIcon,
   InformationCircleIcon,
 } from "@heroicons/react/24/outline";
+import AttendanceReasonModal from "@/components/attendance/AttendanceReasonModal";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081/api";
 
@@ -26,6 +27,9 @@ interface AttendanceResponse {
   lateMinutes: number | null;
   earlyLeaveMinutes: number | null;
   attendanceStatusCode: string;
+  reason: string | null;
+  attachmentUrl: string | null;
+  attachmentName: string | null;
 }
 
 interface ErrorResponse {
@@ -111,6 +115,13 @@ function getDisplayStatus(record: AttendanceResponse | null): DisplayStatus {
   return "출근 전";
 }
 
+function isBeforeStandardEnd(checkOutTime: string | null) {
+  const match = checkOutTime?.match(/T(\d{2}):(\d{2})/);
+  if (!match) return false;
+  const [, hour, minute] = match;
+  return Number(hour) * 60 + Number(minute) < 18 * 60;
+}
+
 function getGuidance(checkedIn: boolean, checkedOut: boolean) {
   if (checkedOut) return "오늘 근무 기록이 정상적으로 완료되었습니다.";
   if (checkedIn) return "현재 근무 중입니다. 퇴근 시 퇴근 버튼을 눌러주세요.";
@@ -124,6 +135,7 @@ export default function SelfAttendancePage() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reasonModalAttendanceId, setReasonModalAttendanceId] = useState<number | null>(null);
   const refreshInFlight = useRef(false);
 
   const fetchToday = useCallback(async () => {
@@ -209,7 +221,11 @@ export default function SelfAttendancePage() {
         const body = (await res.json()) as ErrorResponse;
         throw new Error(body.message || "퇴근 체크에 실패했습니다.");
       }
+      const updated = (await res.json()) as AttendanceResponse;
       await fetchToday();
+      if (isBeforeStandardEnd(updated.checkOutTime)) {
+        setReasonModalAttendanceId(updated.attendanceId);
+      }
     } catch (err) {
       await fetchToday();
       setError(err instanceof Error ? err.message : "퇴근 체크에 실패했습니다.");
@@ -332,6 +348,7 @@ export default function SelfAttendancePage() {
                     ["퇴근 시간", formatTime(record?.checkOutTime)],
                     ["근무 시간", formatMinutes(workMinutes)],
                     ["진행 상태", checkedOut ? "근무 완료" : checkedIn ? "근무 진행 중" : "출근 대기"],
+                    ...(record?.reason ? [["조퇴 사유", record.reason]] : []),
                   ].map(([label, value]) => (
                     <div key={label} className="flex items-center justify-between gap-4 py-4">
                       <dt className="text-sm text-gray-500">{label}</dt>
@@ -379,6 +396,20 @@ export default function SelfAttendancePage() {
           </div>
         </div>
       </aside>
+
+      {reasonModalAttendanceId !== null && (
+        <AttendanceReasonModal
+          attendanceId={reasonModalAttendanceId}
+          title="조퇴 사유 작성"
+          description="18시 이전에 퇴근하셨습니다. 조퇴 사유를 남겨주세요. 급하시면 나중에 작성하셔도 됩니다."
+          skipLabel="나중에 적기"
+          onClose={() => setReasonModalAttendanceId(null)}
+          onSaved={() => {
+            setReasonModalAttendanceId(null);
+            void fetchToday();
+          }}
+        />
+      )}
     </div>
   );
 }

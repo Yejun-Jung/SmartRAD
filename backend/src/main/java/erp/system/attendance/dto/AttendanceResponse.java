@@ -19,7 +19,10 @@ public record AttendanceResponse(
         Integer nightWorkMinutes,
         Integer lateMinutes,
         Integer earlyLeaveMinutes,
-        String attendanceStatusCode
+        String attendanceStatusCode,
+        String reason,
+        String attachmentUrl,
+        String attachmentName
 ) {
     private static final String DELETED_EMPLOYEE_LABEL = "(삭제된 직원)";
 
@@ -39,7 +42,10 @@ public record AttendanceResponse(
                 attendance.getNightWorkMinutes(),
                 attendance.getLateMinutes(),
                 attendance.getEarlyLeaveMinutes(),
-                attendance.getAttendanceStatusCode()
+                attendance.getAttendanceStatusCode(),
+                attendance.getReason(),
+                attendance.getAttachmentUrl(),
+                attendance.getAttachmentName()
         );
     }
 }

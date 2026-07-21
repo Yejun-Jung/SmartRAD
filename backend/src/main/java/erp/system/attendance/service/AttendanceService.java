@@ -7,11 +7,13 @@ import erp.system.attendance.entity.Attendance;
 import erp.system.attendance.repository.AttendanceRepository;
 import erp.system.common.exception.BusinessException;
 import erp.system.common.exception.ErrorCode;
+import erp.system.common.file.FileStorageService;
 import erp.system.employee.entity.Employee;
 import erp.system.employee.repository.EmployeeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -25,6 +27,7 @@ public class AttendanceService {
 
     private final AttendanceRepository attendanceRepository;
     private final EmployeeRepository employeeRepository;
+    private final FileStorageService fileStorageService;
 
     public List<AttendanceResponse> getDaily(LocalDate workDate) {
         return attendanceRepository.findAllByWorkDateOrderByEmployee_EmployeeIdAsc(workDate).stream()
@@ -90,6 +93,28 @@ public class AttendanceService {
         }
 
         attendance.checkOut(now);
+        return AttendanceResponse.from(attendance);
+    }
+
+    @Transactional
+    public AttendanceResponse updateReason(Long attendanceId, Long requesterId, boolean isAdmin,
+                                            String reason, MultipartFile attachment) {
+        Attendance attendance = attendanceRepository.findById(attendanceId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ATTENDANCE_NOT_FOUND));
+
+        if (!isAdmin && !attendance.getEmployee().getEmployeeId().equals(requesterId)) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
+
+        String attachmentUrl = attendance.getAttachmentUrl();
+        String attachmentName = attendance.getAttachmentName();
+        if (attachment != null && !attachment.isEmpty()) {
+            FileStorageService.StoredFile stored = fileStorageService.store(attachment);
+            attachmentUrl = stored.url();
+            attachmentName = stored.originalName();
+        }
+
+        attendance.updateReason(reason, attachmentUrl, attachmentName);
         return AttendanceResponse.from(attendance);
     }
 }

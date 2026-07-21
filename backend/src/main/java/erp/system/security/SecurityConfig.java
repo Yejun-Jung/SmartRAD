@@ -43,6 +43,9 @@ public class SecurityConfig {
                         // 재요청 시 인증 정보가 없어 403이 401로 덮어써지므로 명시적으로 열어둔다.
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
+                        // 업로드된 첨부파일은 추측 불가능한 파일명(UUID 접두사)으로만 접근 가능하며,
+                        // <a href> 다운로드/새 탭 열기 시 Authorization 헤더가 실리지 않으므로 permitAll 처리
+                        .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/employees").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/departments/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/positions/**").permitAll()

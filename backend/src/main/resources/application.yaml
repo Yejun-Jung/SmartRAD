@@ -16,6 +16,10 @@ spring:
       mode: always
   flyway:
     enabled: false
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
 
 jwt:
   secret: ${JWT_SECRET:dev-only-please-override-this-secret-key-in-production-0123456789}

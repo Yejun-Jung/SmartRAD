@@ -71,6 +71,15 @@ public class Attendance extends BaseEntity {
     @Column(name = "attendance_status_code", length = 30)
     private String attendanceStatusCode;
 
+    @Column(name = "reason", length = 500)
+    private String reason;
+
+    @Column(name = "attachment_url")
+    private String attachmentUrl;
+
+    @Column(name = "attachment_name")
+    private String attachmentName;
+
     @Builder
     public Attendance(Employee employee, LocalDate workDate, LocalDateTime checkInTime, int lateMinutes, String attendanceStatusCode) {
         this.employee = employee;
@@ -145,6 +154,12 @@ public class Attendance extends BaseEntity {
         } else {
             this.attendanceStatusCode = STATUS_NORMAL;
         }
+    }
+
+    public void updateReason(String reason, String attachmentUrl, String attachmentName) {
+        this.reason = reason;
+        this.attachmentUrl = attachmentUrl;
+        this.attachmentName = attachmentName;
     }
 
     private int calculateNightWorkMinutes(LocalDateTime checkOutTime) {
