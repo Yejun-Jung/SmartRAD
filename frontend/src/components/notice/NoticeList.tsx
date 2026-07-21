@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MagnifyingGlassIcon, ArrowPathIcon, ChevronLeftIcon, ChevronRightIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { MagnifyingGlassIcon, ArrowPathIcon, ChevronLeftIcon, ChevronRightIcon, XMarkIcon, SparklesIcon } from "@heroicons/react/24/outline";
 import type { NoticeDetail, NoticePage, NoticeSummary } from "./types";
+import { useSummarize } from "@/lib/useSummarize";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081/api";
 const PAGE_SIZE = 10;
@@ -32,6 +33,7 @@ export default function NoticeList({ refreshKey, onActionComplete, onEdit }: Pro
   const [actionError, setActionError] = useState<string | null>(null);
   const [internalRefresh, setInternalRefresh] = useState(0);
   const [viewingNotice, setViewingNotice] = useState<NoticeDetail | null>(null);
+  const { summary, loading: summarizing, error: summarizeError, summarize, reset: resetSummary } = useSummarize();
 
   useEffect(() => {
     let cancelled = false;
@@ -89,10 +91,16 @@ export default function NoticeList({ refreshKey, onActionComplete, onEdit }: Pro
       const res = await fetch(`${API_BASE_URL}/notices/${noticeId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error();
       const detail = (await res.json()) as NoticeDetail;
+      resetSummary();
       setViewingNotice(detail);
     } catch {
       setActionError("공지사항을 불러오지 못했습니다.");
     }
+  };
+
+  const closeView = () => {
+    setViewingNotice(null);
+    resetSummary();
   };
 
   const openEdit = async (noticeId: number) => {
@@ -298,18 +306,36 @@ export default function NoticeList({ refreshKey, onActionComplete, onEdit }: Pro
                   {viewingNotice.writerName} · {formatDate(viewingNotice.createdAt)} · 조회 {viewingNotice.viewCount}
                 </p>
               </div>
-              <button type="button" onClick={() => setViewingNotice(null)} aria-label="닫기" className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+              <button type="button" onClick={closeView} aria-label="닫기" className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
                 <XMarkIcon className="h-5 w-5" />
               </button>
             </div>
-            <div className="whitespace-pre-wrap p-6 text-sm leading-relaxed text-gray-700">
-              {viewingNotice.content}
+            <div className="p-6">
+              <div className="flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => summarize(viewingNotice.content)}
+                  disabled={summarizing}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-600 hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <SparklesIcon className="h-3.5 w-3.5" />
+                  {summarizing ? "요약 중..." : "AI 요약"}
+                </button>
+              </div>
+              {(summary || summarizeError) && (
+                <div className={`mt-3 rounded-lg border px-4 py-3 text-sm ${summarizeError ? "border-rose-200 bg-rose-50 text-rose-600" : "border-indigo-200 bg-indigo-50 text-indigo-700"}`}>
+                  {summarizeError || summary}
+                </div>
+              )}
+              <div className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
+                {viewingNotice.content}
+              </div>
             </div>
             <div className="flex justify-end gap-2 border-t border-gray-200 p-4">
-              <button type="button" onClick={() => setViewingNotice(null)} className="rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50">닫기</button>
+              <button type="button" onClick={closeView} className="rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50">닫기</button>
               <button
                 type="button"
-                onClick={() => { const notice = viewingNotice; setViewingNotice(null); onEdit(notice); }}
+                onClick={() => { const notice = viewingNotice; closeView(); onEdit(notice); }}
                 className="rounded-md bg-[#4A5DDF] px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
               >
                 수정하기

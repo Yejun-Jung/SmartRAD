@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { XMarkIcon } from "@heroicons/react/24/outline";
+import { XMarkIcon, SparklesIcon } from "@heroicons/react/24/outline";
 import type { LeaveApprovalRow } from "./leaveApprovalTypes";
 import { STATUS_LABELS } from "./leaveApprovalTypes";
+import { useSummarize } from "@/lib/useSummarize";
 
 function date(value: string) {
   return value?.slice(0, 10).replaceAll("-", ".") || "-";
@@ -30,6 +31,7 @@ export default function LeaveRequestModal({ mode, row, selectedRows = [], busy, 
   const closeRef = useRef<HTMLButtonElement>(null);
   const [rejectionReason, setRejectionReason] = useState("");
   const [rejectionError, setRejectionError] = useState<string | null>(null);
+  const { summary, loading: summarizing, error: summarizeError, summarize, reset: resetSummary } = useSummarize();
 
   useEffect(() => {
     closeRef.current?.focus();
@@ -39,6 +41,11 @@ export default function LeaveRequestModal({ mode, row, selectedRows = [], busy, 
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
   }, [busy, onClose]);
+
+  useEffect(() => {
+    resetSummary();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [row?.leaveRequestId]);
 
   const title = mode === "detail" ? "휴가 신청 상세" : mode === "approve" ? "휴가 승인 확인" : mode === "bulk" ? "선택 일괄 승인" : "휴가 반려";
 
@@ -86,7 +93,25 @@ export default function LeaveRequestModal({ mode, row, selectedRows = [], busy, 
                 <Info label="승인자" value={row.approverName || "-"} />
               </div>
               <div>
-                <p className="mb-1 text-xs font-medium text-gray-500">신청 사유</p>
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <p className="text-xs font-medium text-gray-500">신청 사유</p>
+                  {row.reason && (
+                    <button
+                      type="button"
+                      onClick={() => summarize(row.reason ?? "")}
+                      disabled={summarizing}
+                      className="inline-flex items-center gap-1 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-[11px] font-bold text-indigo-600 hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <SparklesIcon className="h-3 w-3" />
+                      {summarizing ? "요약 중..." : "AI 요약"}
+                    </button>
+                  )}
+                </div>
+                {(summary || summarizeError) && (
+                  <p className={`mb-2 rounded-lg p-3 text-sm ${summarizeError ? "bg-rose-50 text-rose-600" : "bg-indigo-50 text-indigo-700"}`}>
+                    {summarizeError || summary}
+                  </p>
+                )}
                 <p className="rounded-lg bg-gray-50 p-3 text-sm text-gray-700">{row.reason || "-"}</p>
               </div>
               {mode === "detail" && (

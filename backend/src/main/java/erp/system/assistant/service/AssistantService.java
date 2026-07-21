@@ -2,6 +2,7 @@ package erp.system.assistant.service;
 
 import erp.system.assistant.client.AnthropicClient;
 import erp.system.assistant.dto.ChatResponse;
+import erp.system.assistant.dto.SummarizeResponse;
 import erp.system.attendance.dto.AttendanceResponse;
 import erp.system.attendance.service.AttendanceService;
 import erp.system.employee.dto.EmployeeResponse;
@@ -29,10 +30,20 @@ public class AssistantService {
     private final PayrollService payrollService;
     private final AttendanceService attendanceService;
 
+    private static final String SUMMARIZE_SYSTEM_PROMPT =
+            "당신은 SmartHR 사내 인사관리 시스템의 요약 도우미입니다. "
+                    + "입력된 텍스트를 한국어로 1~2문장, 최대 80자 이내로 간결하게 요약하세요. "
+                    + "요약 문장만 출력하고 다른 설명은 덧붙이지 마세요.";
+
     public ChatResponse ask(Long employeeId, String message) {
         String systemPrompt = buildSystemPrompt(employeeId);
         String reply = anthropicClient.ask(systemPrompt, message);
         return new ChatResponse(reply);
+    }
+
+    public SummarizeResponse summarize(String text) {
+        String summary = anthropicClient.ask(SUMMARIZE_SYSTEM_PROMPT, text);
+        return new SummarizeResponse(summary.trim());
     }
 
     private String buildSystemPrompt(Long employeeId) {

@@ -8,7 +8,9 @@ import {
   CheckBadgeIcon,
   MegaphoneIcon,
   XMarkIcon,
+  SparklesIcon,
 } from "@heroicons/react/24/outline";
+import { useSummarize } from "@/lib/useSummarize";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081/api";
 
@@ -57,15 +59,22 @@ export default function DashboardPage() {
   const [notices, setNotices] = useState<Notice[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewingNotice, setViewingNotice] = useState<NoticeDetail | null>(null);
+  const { summary: aiSummary, loading: summarizing, error: summarizeError, summarize, reset: resetSummary } = useSummarize();
 
   const openNotice = async (noticeId: number) => {
     try {
       const res = await fetch(`${API_BASE_URL}/notices/${noticeId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error();
+      resetSummary();
       setViewingNotice((await res.json()) as NoticeDetail);
     } catch (error) {
       console.error("Failed to fetch notice detail", error);
     }
+  };
+
+  const closeNotice = () => {
+    setViewingNotice(null);
+    resetSummary();
   };
 
   useEffect(() => {
@@ -203,15 +212,31 @@ export default function DashboardPage() {
                   {viewingNotice.writerName} · {viewingNotice.createdAt.substring(0, 10)} · 조회 {viewingNotice.viewCount}
                 </p>
               </div>
-              <button type="button" onClick={() => setViewingNotice(null)} aria-label="닫기" className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+              <button type="button" onClick={closeNotice} aria-label="닫기" className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
                 <XMarkIcon className="h-5 w-5" />
               </button>
             </div>
-            <div className="whitespace-pre-wrap p-6 text-sm leading-relaxed text-gray-700">
-              {viewingNotice.content}
+            <div className="p-6">
+              <button
+                type="button"
+                onClick={() => summarize(viewingNotice.content)}
+                disabled={summarizing}
+                className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-600 hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <SparklesIcon className="h-3.5 w-3.5" />
+                {summarizing ? "요약 중..." : "AI 요약"}
+              </button>
+              {(aiSummary || summarizeError) && (
+                <div className={`mt-3 rounded-lg border px-4 py-3 text-sm ${summarizeError ? "border-rose-200 bg-rose-50 text-rose-600" : "border-indigo-200 bg-indigo-50 text-indigo-700"}`}>
+                  {summarizeError || aiSummary}
+                </div>
+              )}
+              <div className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
+                {viewingNotice.content}
+              </div>
             </div>
             <div className="flex justify-end gap-2 border-t border-gray-200 p-4">
-              <button type="button" onClick={() => setViewingNotice(null)} className="rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50">닫기</button>
+              <button type="button" onClick={closeNotice} className="rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50">닫기</button>
               <Link
                 href="/notices"
                 className="inline-flex items-center justify-center rounded-md bg-[#4A5DDF] px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
