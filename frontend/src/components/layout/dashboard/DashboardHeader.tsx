@@ -13,6 +13,7 @@ import {
 
 import { dashboardMenuGroups } from "@/lib/dashboardMenu"
 import NotificationBell from "./NotificationBell"
+import SessionTimer from "./SessionTimer"
 
 const flatItems = dashboardMenuGroups.flatMap((group) =>
   group.items.map((item) => ({ ...item, groupTitle: group.title })),
@@ -84,6 +85,7 @@ export default function DashboardHeader() {
       </div>
 
       <div className="flex items-center gap-4">
+        <SessionTimer />
         <NotificationBell />
 
         {isSelfAttendance ? (

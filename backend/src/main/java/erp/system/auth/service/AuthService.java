@@ -94,4 +94,16 @@ public class AuthService {
         KakaoUserInfo userInfo = kakaoApiClient.getUserInfo(kakaoAccessToken);
         return String.valueOf(userInfo.id());
     }
+
+    public LoginResponse refreshToken(Long employeeId) {
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.EMPLOYEE_NOT_FOUND));
+
+        if (!employee.isLoginable()) {
+            throw new BusinessException(ErrorCode.ACCOUNT_INACTIVE);
+        }
+
+        String accessToken = jwtTokenProvider.createToken(employee.getEmployeeId(), employee.getEmployeeNo(), employee.getRoleCode());
+        return LoginResponse.of(accessToken, employee);
+    }
 }
