@@ -91,3 +91,15 @@ body {
     max-width: none !important;
   }
 }
+
+@media print {
+  body:has(.payroll-statement-print) aside,
+  body:has(.payroll-statement-print) > div header,
+  body:has(.payroll-statement-print) .payroll-statement-print button {
+    display: none !important;
+  }
+
+  body:has(.payroll-statement-print) main {
+    padding: 0 !important;
+  }
+}

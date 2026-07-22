@@ -6,10 +6,13 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface EmployeeRepository extends JpaRepository<Employee,Long>, JpaSpecificationExecutor<Employee> {
     Optional<Employee> findByEmployeeNoOrEmail(String employeeNo, String email);
+
+    List<Employee> findAllByRoleCode(String roleCode);
 
     Optional<Employee> findByKakaoId(String kakaoId);
 

@@ -25,9 +25,13 @@ public class Attendance extends BaseEntity {
     public static final String STATUS_LATE = "LATE";
     public static final String STATUS_EARLY_LEAVE = "EARLY_LEAVE";
     public static final String STATUS_ABSENT = "ABSENT";
+    public static final String STATUS_OVERTIME = "OVERTIME";
+    public static final String STATUS_NIGHT_WORK = "NIGHT_WORK";
 
     private static final LocalTime STANDARD_START_TIME = LocalTime.of(9, 0);
     private static final LocalTime STANDARD_END_TIME = LocalTime.of(18, 0);
+    private static final LocalTime OVERTIME_STATUS_START_TIME = LocalTime.of(19, 0);
+    private static final LocalTime NIGHT_WORK_STATUS_START_TIME = LocalTime.of(21, 0);
     private static final LocalTime NIGHT_WORK_START_TIME = LocalTime.of(22, 0);
     private static final int STANDARD_WORK_MINUTES = 480;
 
@@ -67,6 +71,15 @@ public class Attendance extends BaseEntity {
     @Column(name = "attendance_status_code", length = 30)
     private String attendanceStatusCode;
 
+    @Column(name = "reason", length = 500)
+    private String reason;
+
+    @Column(name = "attachment_url")
+    private String attachmentUrl;
+
+    @Column(name = "attachment_name")
+    private String attachmentName;
+
     @Builder
     public Attendance(Employee employee, LocalDate workDate, LocalDateTime checkInTime, int lateMinutes, String attendanceStatusCode) {
         this.employee = employee;
@@ -77,8 +90,10 @@ public class Attendance extends BaseEntity {
     }
 
     public static Attendance checkIn(Employee employee, LocalDateTime checkInTime) {
-        int lateMinutes = (int) Math.max(0, Duration.between(STANDARD_START_TIME, checkInTime.toLocalTime()).toMinutes());
-        String status = lateMinutes > 0 ? STATUS_LATE : STATUS_NORMAL;
+        boolean isLate = checkInTime.toLocalTime().isAfter(STANDARD_START_TIME);
+        long lateSeconds = Math.max(0, Duration.between(STANDARD_START_TIME, checkInTime.toLocalTime()).getSeconds());
+        int lateMinutes = (int) Math.ceil(lateSeconds / 60.0);
+        String status = isLate ? STATUS_LATE : STATUS_NORMAL;
 
         return Attendance.builder()
                 .employee(employee)
@@ -125,13 +140,26 @@ public class Attendance extends BaseEntity {
         this.earlyLeaveMinutes = (int) Math.max(0, Duration.between(checkOutTime.toLocalTime(), STANDARD_END_TIME).toMinutes());
         this.nightWorkMinutes = calculateNightWorkMinutes(checkOutTime);
 
+        boolean isNightWorkCheckout = checkOutTime.toLocalTime().isAfter(NIGHT_WORK_STATUS_START_TIME);
+        boolean isOvertimeCheckout = checkOutTime.toLocalTime().isAfter(OVERTIME_STATUS_START_TIME);
+
         if (this.lateMinutes != null && this.lateMinutes > 0) {
             this.attendanceStatusCode = STATUS_LATE;
         } else if (this.earlyLeaveMinutes > 0) {
             this.attendanceStatusCode = STATUS_EARLY_LEAVE;
+        } else if (isNightWorkCheckout) {
+            this.attendanceStatusCode = STATUS_NIGHT_WORK;
+        } else if (isOvertimeCheckout) {
+            this.attendanceStatusCode = STATUS_OVERTIME;
         } else {
             this.attendanceStatusCode = STATUS_NORMAL;
         }
+    }
+
+    public void updateReason(String reason, String attachmentUrl, String attachmentName) {
+        this.reason = reason;
+        this.attachmentUrl = attachmentUrl;
+        this.attachmentName = attachmentName;
     }
 
     private int calculateNightWorkMinutes(LocalDateTime checkOutTime) {

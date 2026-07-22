@@ -25,8 +25,13 @@ services:
     restart: unless-stopped
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      ASSISTANT_PROVIDER: ${ASSISTANT_PROVIDER:-gemini}
     ports:
       - "8081:8080"
+    volumes:
+      - tp-hr-uploads:/app/uploads
     depends_on:
       mysql:
         condition: service_healthy
@@ -46,3 +51,4 @@ services:
 
 volumes:
   tp-hr-mysql-data:
+  tp-hr-uploads:

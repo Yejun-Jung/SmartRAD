@@ -2,6 +2,7 @@ package erp.system.certificate.service;
 
 import erp.system.certificate.dto.EmployeeCertificateIssueCreateRequest;
 import erp.system.certificate.dto.EmployeeCertificateIssueResponse;
+import erp.system.certificate.dto.MyCertificateIssueCreateRequest;
 import erp.system.certificate.entity.EmployeeCertificateIssue;
 import erp.system.certificate.repository.EmployeeCertificateIssueRepository;
 import erp.system.common.exception.BusinessException;
@@ -61,16 +62,25 @@ public class EmployeeCertificateIssueService {
 
     @Transactional
     public EmployeeCertificateIssueResponse create(EmployeeCertificateIssueCreateRequest request) {
-        Employee employee = employeeRepository.findById(request.employeeId())
+        return createForEmployee(request.employeeId(), request.certificateType(), request.purpose(), request.memo());
+    }
+
+    @Transactional
+    public EmployeeCertificateIssueResponse createMine(Long employeeId, MyCertificateIssueCreateRequest request) {
+        return createForEmployee(employeeId, request.certificateType(), request.purpose(), request.memo());
+    }
+
+    private EmployeeCertificateIssueResponse createForEmployee(Long employeeId, String certificateType, String purpose, String memo) {
+        Employee employee = employeeRepository.findById(employeeId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.EMPLOYEE_NOT_FOUND));
 
         EmployeeCertificateIssue issue = EmployeeCertificateIssue.builder()
                 .employee(employee)
                 .applicationNo(generateApplicationNo())
-                .certificateType(request.certificateType())
+                .certificateType(certificateType)
                 .applicationDate(LocalDate.now())
-                .purpose(request.purpose())
-                .memo(request.memo())
+                .purpose(purpose)
+                .memo(memo)
                 .build();
 
         return EmployeeCertificateIssueResponse.from(certificateIssueRepository.save(issue));

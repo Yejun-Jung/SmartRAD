@@ -14,6 +14,7 @@ import erp.system.position.entity.Position;
 import erp.system.payroll.dto.PayrollBulkResult;
 import erp.system.payroll.dto.PayrollCalculateRequest;
 import erp.system.payroll.dto.PayrollDetailedResponse;
+import erp.system.payroll.dto.PayrollMonthlySummaryResponse;
 import erp.system.payroll.dto.PayrollResponse;
 import erp.system.payroll.entity.Payroll;
 import erp.system.payroll.entity.PayrollDetail;
@@ -40,6 +41,7 @@ public class PayrollService {
 
     private static final DateTimeFormatter YEAR_MONTH_KEY = DateTimeFormatter.ofPattern("yyyyMM");
     private static final BigDecimal STANDARD_MONTHLY_HOURS = BigDecimal.valueOf(209);
+    private static final BigDecimal MONTHS_PER_YEAR = BigDecimal.valueOf(12);
     private static final BigDecimal OVERTIME_MULTIPLIER = BigDecimal.valueOf(1.5);
     private static final BigDecimal MINUTES_PER_HOUR = BigDecimal.valueOf(60);
 
@@ -62,6 +64,18 @@ public class PayrollService {
             }
             return predicate;
         }).stream().map(PayrollResponse::from).toList();
+    }
+
+    public List<PayrollMonthlySummaryResponse> getMonthlySummary(int months) {
+        YearMonth from = YearMonth.now().minusMonths(months - 1L);
+        return payrollRepository.sumByYearMonthFrom(from.format(YEAR_MONTH_KEY)).stream()
+                .map(row -> new PayrollMonthlySummaryResponse(
+                        (String) row[0],
+                        (BigDecimal) row[1],
+                        (BigDecimal) row[2],
+                        (long) row[3]
+                ))
+                .toList();
     }
 
     public PayrollDetailedResponse getDetail(Long payrollId) {
@@ -135,9 +149,10 @@ public class PayrollService {
         BigDecimal totalEarning = BigDecimal.ZERO;
         BigDecimal totalDeduction = BigDecimal.ZERO;
 
-        // 기본급
-        details.add(earningDetail(payroll, null, "기본급", employee.getBaseSalary()));
-        totalEarning = totalEarning.add(employee.getBaseSalary());
+        // 기본급 (등록된 값은 연봉이므로 12로 나눠 월 지급액을 계산한다)
+        BigDecimal monthlyBaseSalary = monthlyBaseSalary(employee);
+        details.add(earningDetail(payroll, null, "기본급", monthlyBaseSalary));
+        totalEarning = totalEarning.add(monthlyBaseSalary);
 
         // 사원별 수당 (해당 월에 유효한 것만)
         for (EmployeeAllowance ea : employeeAllowanceRepository.findAllByEmployee_EmployeeId(employee.getEmployeeId())) {
@@ -262,9 +277,13 @@ public class PayrollService {
         }
 
         BigDecimal overtimeHours = BigDecimal.valueOf(overtimeMinutes).divide(MINUTES_PER_HOUR, 4, RoundingMode.HALF_UP);
-        BigDecimal hourlyRate = employee.getBaseSalary().divide(STANDARD_MONTHLY_HOURS, 2, RoundingMode.HALF_UP);
+        BigDecimal hourlyRate = monthlyBaseSalary(employee).divide(STANDARD_MONTHLY_HOURS, 2, RoundingMode.HALF_UP);
 
         return hourlyRate.multiply(overtimeHours).multiply(OVERTIME_MULTIPLIER).setScale(0, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal monthlyBaseSalary(Employee employee) {
+        return employee.getBaseSalary().divide(MONTHS_PER_YEAR, 0, RoundingMode.HALF_UP);
     }
 
     private PayrollDetail earningDetail(Payroll payroll, PayrollItemMaster item, String name, BigDecimal amount) {

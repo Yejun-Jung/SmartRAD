@@ -5,7 +5,6 @@ import { usePathname, useRouter } from "next/navigation"
 
 import {
   ArrowDownTrayIcon,
-  BellIcon,
   PlusIcon,
   ClockIcon,
   ArrowPathIcon,
@@ -13,6 +12,7 @@ import {
 } from "@heroicons/react/24/outline"
 
 import { dashboardMenuGroups } from "@/lib/dashboardMenu"
+import NotificationBell from "./NotificationBell"
 
 const flatItems = dashboardMenuGroups.flatMap((group) =>
   group.items.map((item) => ({ ...item, groupTitle: group.title })),
@@ -41,8 +41,12 @@ export default function DashboardHeader() {
   const isLeaveApproval = pathname === "/leave/approve"
   const isLeaveUsage = pathname === "/leave/status"
   const [monthlySelection, setMonthlySelection] = useState(currentMonth)
+  const [role, setRole] = useState<string | null>(null)
 
   useEffect(() => {
+    const storedRole = window.localStorage.getItem("role") ?? window.sessionStorage.getItem("role")
+    setRole(storedRole)
+    
     const handleSync = (event: Event) => {
       const { month } = (event as CustomEvent<{ month: string }>).detail
       setMonthlySelection(month)
@@ -77,10 +81,8 @@ export default function DashboardHeader() {
         </div>
       </div>
 
-      <div className="flex w-full items-center justify-end gap-3 sm:w-auto sm:gap-4">
-        <button className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50">
-          <BellIcon className="w-5 h-5" />
-        </button>
+      <div className="flex items-center gap-4">
+        <NotificationBell />
 
         {isSelfAttendance ? (
           <button
@@ -220,15 +222,17 @@ export default function DashboardHeader() {
             <ArrowDownTrayIcon className="h-4 w-4" />
             리포트 출력
           </button>
-        ) : (
-          <button
-            type="button"
-            onClick={() => router.push("/employees/new")}
-            className="flex items-center gap-2 bg-[#4A5DDF] hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm"
-          >
-            <UserPlusIcon className="w-4 h-4" />
-            직원 등록
-          </button>
+        ) : isMyAttendance || isMyLeave ? null : (
+          role === "ADMIN" && (
+            <button
+              type="button"
+              onClick={() => router.push("/employees/new")}
+              className="flex items-center gap-2 bg-[#4A5DDF] hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm"
+            >
+              <UserPlusIcon className="w-4 h-4" />
+              직원 등록
+            </button>
+          )
         )}
       </div>
     </header>

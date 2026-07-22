@@ -74,6 +74,7 @@ type PayrollBasicRow = {
   accountNumber: string;
   accountHolder: string;
   basePay: string;
+  monthlyPay: string | null;
   allowance: string;
   allowanceAmount: number;
   account: string;
@@ -87,6 +88,11 @@ type PayrollBasicRow = {
 function formatCurrency(value: number | null | undefined) {
   if (value == null) return "미등록";
   return `${Math.round(value).toLocaleString("ko-KR")}원`;
+}
+
+function formatMonthlyEquivalent(annualSalary: number | null | undefined) {
+  if (annualSalary == null) return null;
+  return `월 환산 ${Math.round(annualSalary / 12).toLocaleString("ko-KR")}원`;
 }
 
 function maskAccount(bankName: string | null, accountNumber: string | null) {
@@ -123,6 +129,7 @@ function toRow(employee: EmployeeResponse): PayrollBasicRow {
     accountNumber: employee.accountNumber ?? "",
     accountHolder: employee.accountHolder ?? employee.name,
     basePay: formatCurrency(employee.baseSalary),
+    monthlyPay: formatMonthlyEquivalent(employee.baseSalary),
     allowance: formatCurrency(employee.allowanceAmount ?? 0),
     allowanceAmount: employee.allowanceAmount ?? 0,
     account: maskAccount(employee.bankName, employee.accountNumber),
@@ -288,7 +295,7 @@ export default function PayrollBasicPage() {
     {
       title: "미등록 직원",
       value: `${unregisteredCount.toLocaleString("ko-KR")}명`,
-      description: "기본급/계좌 등록 필요",
+      description: "연봉/계좌 등록 필요",
       icon: UserMinusIcon,
       className: "border-orange-200 bg-orange-50",
       iconClassName: "bg-orange-100 text-orange-600",
@@ -382,7 +389,7 @@ export default function PayrollBasicPage() {
 
     const baseSalary = Number(salaryInput.replace(/,/g, ""));
     if (!Number.isFinite(baseSalary) || baseSalary < 0) {
-      setModalError("기본급은 0 이상의 숫자로 입력해주세요.");
+      setModalError("연봉은 0 이상의 숫자로 입력해주세요.");
       return;
     }
 
@@ -653,7 +660,7 @@ export default function PayrollBasicPage() {
         baseSalary < 0
       ) {
         setBulkPayrollError(
-          `${item.name}(${item.employeeNo})의 기본급을 0 이상의 숫자로 입력해주세요.`,
+          `${item.name}(${item.employeeNo})의 연봉을 0 이상의 숫자로 입력해주세요.`,
         );
         return;
       }
@@ -704,7 +711,7 @@ export default function PayrollBasicPage() {
 
   const downloadExcelTemplate = () => {
     const worksheet = XLSX.utils.aoa_to_sheet([
-      ["사번", "기본급", "은행", "계좌번호", "예금주"],
+      ["사번", "연봉", "은행", "계좌번호", "예금주"],
       ["E2026001", 50000000, "국민은행", "123-456-7890", "홍길동"],
     ]);
     const workbook = XLSX.utils.book_new();
@@ -755,7 +762,7 @@ export default function PayrollBasicPage() {
           return;
         }
         const baseSalary = Number(
-          String(row["기본급"] ?? "").replace(/,/g, ""),
+          String(row["연봉"] ?? "").replace(/,/g, ""),
         );
         if (!Number.isFinite(baseSalary) || baseSalary < 0) {
           invalid.push(`${index + 2}행(${employeeNo})`);
@@ -772,7 +779,7 @@ export default function PayrollBasicPage() {
 
       if (items.length === 0) {
         window.alert(
-          "등록할 수 있는 유효한 행이 없습니다. 사번과 기본급을 확인해주세요.",
+          "등록할 수 있는 유효한 행이 없습니다. 사번과 연봉을 확인해주세요.",
         );
         return;
       }
@@ -795,7 +802,7 @@ export default function PayrollBasicPage() {
           `사번 불일치 ${notFound.length}건(${notFound.slice(0, 5).join(", ")}${notFound.length > 5 ? " 외" : ""})`,
         );
       if (invalid.length > 0)
-        messages.push(`기본급 형식 오류 ${invalid.length}건`);
+        messages.push(`연봉 형식 오류 ${invalid.length}건`);
 
       window.alert(messages.join("\n"));
       await fetchEmployees();
@@ -995,7 +1002,7 @@ export default function PayrollBasicPage() {
                   "부서",
                   "직급",
                   "급여형태",
-                  "기본급",
+                  "연봉",
                   "고정수당",
                   "급여계좌",
                   "등록상태",
@@ -1076,6 +1083,9 @@ export default function PayrollBasicPage() {
                       className={`whitespace-nowrap px-4 py-3 font-bold ${employee.basePay === "미등록" ? "text-orange-600" : "text-slate-900"}`}
                     >
                       {employee.basePay}
+                      {employee.monthlyPay && (
+                        <p className="mt-0.5 text-xs font-medium text-slate-400">{employee.monthlyPay}</p>
+                      )}
                     </td>
                     <td
                       className={`whitespace-nowrap px-4 py-3 ${employee.allowance === "미등록" ? "font-bold text-orange-600" : "text-slate-600"}`}
@@ -1210,14 +1220,19 @@ export default function PayrollBasicPage() {
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <label className="space-y-1 text-sm font-semibold text-slate-700">
-                  <span>기본급</span>
+                  <span>연봉</span>
                   <input
                     value={salaryInput}
                     onChange={(event) => setSalaryInput(event.target.value)}
                     inputMode="numeric"
                     className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-400"
-                    placeholder="예: 3200000"
+                    placeholder="예: 42000000"
                   />
+                  {formatMonthlyEquivalent(Number(salaryInput.replace(/,/g, "")) || null) && (
+                    <p className="text-xs font-normal text-slate-400">
+                      {formatMonthlyEquivalent(Number(salaryInput.replace(/,/g, "")) || null)}
+                    </p>
+                  )}
                 </label>
                 <label className="space-y-1 text-sm font-semibold text-slate-700">
                   <span>고정수당{fixedAllowanceOption ? ` (${fixedAllowanceOption.allowanceName})` : ""}</span>
@@ -1372,7 +1387,7 @@ export default function PayrollBasicPage() {
                   급여정보 일괄등록
                 </h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  미등록 {bulkPayrollItems.length}명의 기본급/계좌정보를 입력하세요.
+                  미등록 {bulkPayrollItems.length}명의 연봉/계좌정보를 입력하세요.
                 </p>
               </div>
               <button
@@ -1396,7 +1411,7 @@ export default function PayrollBasicPage() {
                   </p>
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <label className="space-y-1 text-sm font-semibold text-slate-700">
-                      <span>기본급</span>
+                      <span>연봉</span>
                       <input
                         value={item.baseSalary}
                         onChange={(event) =>
@@ -1408,8 +1423,13 @@ export default function PayrollBasicPage() {
                         }
                         inputMode="numeric"
                         className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-400"
-                        placeholder="예: 3200000"
+                        placeholder="예: 42000000"
                       />
+                      {formatMonthlyEquivalent(Number(item.baseSalary.replace(/,/g, "")) || null) && (
+                        <p className="text-xs font-normal text-slate-400">
+                          {formatMonthlyEquivalent(Number(item.baseSalary.replace(/,/g, "")) || null)}
+                        </p>
+                      )}
                     </label>
                     <label className="space-y-1 text-sm font-semibold text-slate-700">
                       <span>은행</span>

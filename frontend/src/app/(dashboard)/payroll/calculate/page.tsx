@@ -411,7 +411,7 @@ function PayrollCriteriaModal({ onClose }: { onClose: () => void }) {
   const criteria = [
     {
       title: "직원별 급여 기본정보",
-      description: "기본급, 고정수당, 급여계좌 정보를 수정합니다.",
+      description: "연봉, 고정수당, 급여계좌 정보를 수정합니다.",
       href: "/payroll/basic",
       action: "기본정보 수정",
     },
@@ -546,7 +546,7 @@ export default function PayrollCalculatePage() {
         throw new Error(body?.message || "급여 계산 실행에 실패했습니다.");
       }
       const result = (await res.json()) as { calculated: number; skipped: number };
-      window.alert(`${input} 급여 계산 완료: ${result.calculated}명 계산, ${result.skipped}명 제외(기본급 미등록 또는 지급 완료)`);
+      window.alert(`${input} 급여 계산 완료: ${result.calculated}명 계산, ${result.skipped}명 제외(연봉 미등록 또는 지급 완료)`);
       setRefreshKey((key) => key + 1);
     } catch (error) {
       window.alert(error instanceof Error ? error.message : "급여 계산 실행에 실패했습니다.");

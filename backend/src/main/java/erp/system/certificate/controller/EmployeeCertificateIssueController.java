@@ -3,6 +3,7 @@ package erp.system.certificate.controller;
 import erp.system.certificate.dto.EmployeeCertificateIssueCreateRequest;
 import erp.system.certificate.dto.EmployeeCertificateIssueRejectRequest;
 import erp.system.certificate.dto.EmployeeCertificateIssueResponse;
+import erp.system.certificate.dto.MyCertificateIssueCreateRequest;
 import erp.system.certificate.service.EmployeeCertificateIssueService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,6 +22,19 @@ import java.util.List;
 public class EmployeeCertificateIssueController {
 
     private final EmployeeCertificateIssueService certificateIssueService;
+
+    @GetMapping("/me")
+    public List<EmployeeCertificateIssueResponse> getMine(@AuthenticationPrincipal Long employeeId) {
+        return certificateIssueService.getByEmployee(employeeId);
+    }
+
+    @PostMapping("/me")
+    public ResponseEntity<EmployeeCertificateIssueResponse> createMine(
+            @AuthenticationPrincipal Long employeeId,
+            @Valid @RequestBody MyCertificateIssueCreateRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(certificateIssueService.createMine(employeeId, request));
+    }
 
     @GetMapping
     public List<EmployeeCertificateIssueResponse> getByEmployee(@RequestParam Long employeeId) {

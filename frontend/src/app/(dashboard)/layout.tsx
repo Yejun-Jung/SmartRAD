@@ -2,6 +2,7 @@ import DashboardSidebar from "@/components/layout/dashboard/DashboardSidebar";
 import DashboardHeader from "@/components/layout/dashboard/DashboardHeader";
 import SessionExpiryHandler from "@/components/auth/SessionExpiryHandler";
 import RoleGuard from "@/components/auth/RoleGuard";
+import ChatWidget from "@/components/assistant/ChatWidget";
 
 export default function DashboardLayout({
   children,
@@ -19,6 +20,7 @@ export default function DashboardLayout({
           {children}
         </main>
       </div>
+      <ChatWidget />
     </div>
   );
 }

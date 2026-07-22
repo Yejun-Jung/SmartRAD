@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowLeftIcon, ArrowRightIcon, CalendarDaysIcon, CheckCircleIcon, ClockIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { ArrowLeftIcon, ArrowPathIcon, ArrowRightIcon, CalendarDaysIcon, CheckCircleIcon, ClockIcon, PencilSquareIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import AttendanceReasonModal from "@/components/attendance/AttendanceReasonModal";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081/api";
 
@@ -19,14 +20,22 @@ interface AttendanceResponse {
   lateMinutes: number | null;
   earlyLeaveMinutes: number | null;
   attendanceStatusCode: string;
+  reason: string | null;
+  attachmentUrl: string | null;
+  attachmentName: string | null;
 }
 
-type Filter = "ALL" | "NORMAL" | "LATE" | "EARLY_LEAVE" | "ABSENT";
-type Status = "정상" | "지각" | "조퇴" | "결근" | "근무 중" | "미등록";
+function needsCorrection(status: string) {
+  return status === "LATE" || status === "EARLY_LEAVE";
+}
+
+type Filter = "ALL" | "NORMAL" | "LATE" | "EARLY_LEAVE" | "OVERTIME" | "NIGHT_WORK" | "ABSENT";
+type Status = "정상" | "지각" | "조퇴" | "추가근무" | "야근" | "결근" | "근무 중" | "미등록";
 
 const filters: { value: Filter; label: string }[] = [
   { value: "ALL", label: "전체" }, { value: "NORMAL", label: "정상" },
   { value: "LATE", label: "지각" }, { value: "EARLY_LEAVE", label: "조퇴" },
+  { value: "OVERTIME", label: "추가근무" }, { value: "NIGHT_WORK", label: "야근" },
   { value: "ABSENT", label: "결근" },
 ];
 
@@ -34,6 +43,8 @@ const statusStyle: Record<Status, string> = {
   정상: "bg-emerald-50 text-emerald-700 ring-emerald-200",
   지각: "bg-orange-50 text-orange-700 ring-orange-200",
   조퇴: "bg-violet-50 text-violet-700 ring-violet-200",
+  추가근무: "bg-indigo-50 text-indigo-700 ring-indigo-200",
+  야근: "bg-purple-50 text-purple-700 ring-purple-200",
   결근: "bg-rose-50 text-rose-700 ring-rose-200",
   "근무 중": "bg-blue-50 text-blue-700 ring-blue-200",
   미등록: "bg-gray-100 text-gray-600 ring-gray-200",
@@ -73,7 +84,7 @@ function weekday(value: string) {
 
 function getStatus(record: AttendanceResponse): Status {
   if (record.checkInTime && !record.checkOutTime && record.attendanceStatusCode !== "ABSENT") return "근무 중";
-  return ({ NORMAL: "정상", LATE: "지각", EARLY_LEAVE: "조퇴", ABSENT: "결근" } as Record<string, Status>)[record.attendanceStatusCode] ?? "미등록";
+  return ({ NORMAL: "정상", LATE: "지각", EARLY_LEAVE: "조퇴", OVERTIME: "추가근무", NIGHT_WORK: "야근", ABSENT: "결근" } as Record<string, Status>)[record.attendanceStatusCode] ?? "미등록";
 }
 
 function StatusBadge({ record }: { record: AttendanceResponse }) {
@@ -86,6 +97,7 @@ export default function MyAttendancePage() {
   const [records, setRecords] = useState<AttendanceResponse[]>([]);
   const [filter, setFilter] = useState<Filter>("ALL");
   const [detail, setDetail] = useState<AttendanceResponse | null>(null);
+  const [correcting, setCorrecting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -151,6 +163,25 @@ export default function MyAttendancePage() {
         <div className="divide-y divide-gray-100 md:hidden">{shown.map((item) => <button key={item.attendanceId} type="button" onClick={() => setDetail(item)} className="w-full p-4 text-left hover:bg-gray-50"><div className="flex items-center justify-between"><div><p className="font-semibold">{formatDate(item.workDate)}</p><p className="text-xs text-gray-500">{weekday(item.workDate)}</p></div><StatusBadge record={item} /></div><p className="mt-3 text-sm text-gray-600">{formatTime(item.checkInTime)} → {formatTime(item.checkOutTime)} · {formatMinutes(item.workMinutes)}</p></button>)}</div></>}
     </section>
 
-    {detail && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4" role="dialog" aria-modal="true"><div className="w-full max-w-md rounded-xl bg-white shadow-xl"><div className="flex items-start justify-between border-b p-5"><div><h2 className="text-lg font-bold">일일 근태 상세</h2><p className="mt-1 text-sm text-gray-500">{formatDate(detail.workDate)} {weekday(detail.workDate)}</p></div><button type="button" onClick={() => setDetail(null)} aria-label="닫기"><XMarkIcon className="h-5 w-5 text-gray-400" /></button></div><dl className="divide-y px-5">{[["날짜", formatDate(detail.workDate)], ["출근 시간", formatTime(detail.checkInTime)], ["퇴근 시간", formatTime(detail.checkOutTime)], ["근무 시간", formatMinutes(detail.workMinutes)]].map(([label, value]) => <div key={label} className="flex justify-between py-4"><dt className="text-sm text-gray-500">{label}</dt><dd className="text-sm font-semibold">{value}</dd></div>)}<div className="flex items-center justify-between py-4"><dt className="text-sm text-gray-500">근태 상태</dt><dd><StatusBadge record={detail} /></dd></div></dl><div className="flex justify-end border-t p-4"><button type="button" onClick={() => setDetail(null)} className="rounded-md border px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">닫기</button></div></div></div>}
+    {detail && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4" role="dialog" aria-modal="true"><div className="w-full max-w-md rounded-xl bg-white shadow-xl"><div className="flex items-start justify-between border-b p-5"><div><h2 className="text-lg font-bold">일일 근태 상세</h2><p className="mt-1 text-sm text-gray-500">{formatDate(detail.workDate)} {weekday(detail.workDate)}</p></div><button type="button" onClick={() => setDetail(null)} aria-label="닫기"><XMarkIcon className="h-5 w-5 text-gray-400" /></button></div><dl className="divide-y px-5">{[["날짜", formatDate(detail.workDate)], ["출근 시간", formatTime(detail.checkInTime)], ["퇴근 시간", formatTime(detail.checkOutTime)], ["근무 시간", formatMinutes(detail.workMinutes)]].map(([label, value]) => <div key={label} className="flex justify-between py-4"><dt className="text-sm text-gray-500">{label}</dt><dd className="text-sm font-semibold">{value}</dd></div>)}<div className="flex items-center justify-between py-4"><dt className="text-sm text-gray-500">근태 상태</dt><dd><StatusBadge record={detail} /></dd></div>
+      {needsCorrection(detail.attendanceStatusCode) && <div className="py-4"><dt className="text-sm text-gray-500">사유</dt><dd className="mt-1 text-sm font-medium text-gray-800">{detail.reason || "등록된 사유가 없습니다."}</dd>{detail.attachmentName && <dd className="mt-1 text-xs">{detail.attachmentUrl ? <a href={`${API_BASE_URL.replace(/\/api\/?$/, "")}${detail.attachmentUrl}`} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">{detail.attachmentName}</a> : detail.attachmentName}</dd>}</div>}
+      </dl><div className="flex justify-end gap-2 border-t p-4">{needsCorrection(detail.attendanceStatusCode) && <button type="button" onClick={() => setCorrecting(true)} className="flex items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-100"><PencilSquareIcon className="h-4 w-4" />{detail.reason ? "사유 수정" : "정정"}</button>}<button type="button" onClick={() => setDetail(null)} className="rounded-md border px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">닫기</button></div></div></div>}
+
+    {correcting && detail && (
+      <AttendanceReasonModal
+        attendanceId={detail.attendanceId}
+        title={getStatus(detail) === "지각" ? "지각 사유 정정" : "조퇴 사유 정정"}
+        description="사유와 필요한 경우 증빙 파일을 첨부해주세요."
+        initialReason={detail.reason}
+        initialAttachmentName={detail.attachmentName}
+        initialAttachmentUrl={detail.attachmentUrl}
+        onClose={() => setCorrecting(false)}
+        onSaved={(saved) => {
+          setCorrecting(false);
+          setDetail((prev) => (prev ? { ...prev, ...saved } : prev));
+          void fetchRecords();
+        }}
+      />
+    )}
   </div>;
 }

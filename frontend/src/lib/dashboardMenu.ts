@@ -1,5 +1,6 @@
 import {
   UsersIcon,
+  UserIcon,
   HomeIcon,
   UserPlusIcon,
   ArrowPathIcon,
@@ -16,6 +17,7 @@ import {
   FingerPrintIcon,
   AdjustmentsHorizontalIcon,
   TagIcon,
+  ReceiptPercentIcon,
 } from "@heroicons/react/24/outline";
 
 export const dashboardMenuGroups = [
@@ -28,7 +30,9 @@ export const dashboardMenuGroups = [
   {
     title: "인사 관리",
     items: [
+      { name: "내 정보(프로필) 조회", href: "/profile", icon: UserIcon, adminOnly: false },
       { name: "직원 목록 조회", href: "/employees", icon: UsersIcon, adminOnly: false },
+      { name: "제증명서 신청/조회", href: "/certificates/my", icon: DocumentTextIcon, adminOnly: false, userOnly: true },
       { name: "신규 직원 등록", href: "/employees/new", icon: UserPlusIcon, adminOnly: true },
       { name: "인사 발령 관리", href: "/appointments", icon: ArrowPathIcon, adminOnly: true },
       { name: "제증명서 관리", href: "/certificates", icon: DocumentTextIcon, adminOnly: true },
@@ -50,6 +54,7 @@ export const dashboardMenuGroups = [
   {
     title: "급여 관리",
     items: [
+      { name: "내 급여 명세서", href: "/payroll/mine", icon: ReceiptPercentIcon, adminOnly: false },
       { name: "급여 기본정보 관리", href: "/payroll/basic", icon: CurrencyDollarIcon, adminOnly: true },
       { name: "급여 계산", href: "/payroll/calculate", icon: CalculatorIcon, adminOnly: true },
       { name: "급여 지급 처리", href: "/payroll/process", icon: BanknotesIcon, adminOnly: true },
@@ -59,6 +64,7 @@ export const dashboardMenuGroups = [
   {
     title: "사내 소통",
     items: [
+      { name: "공지사항", href: "/notices/view", icon: MegaphoneIcon, adminOnly: false },
       { name: "공지사항 관리", href: "/notices", icon: MegaphoneIcon, adminOnly: true },
     ]
   }

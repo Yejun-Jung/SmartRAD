@@ -15,6 +15,8 @@ import erp.system.leave.entity.LeaveType;
 import erp.system.leave.repository.EmployeeLeaveBalanceRepository;
 import erp.system.leave.repository.LeaveRequestRepository;
 import erp.system.leave.repository.LeaveTypeRepository;
+import erp.system.notification.entity.Notification;
+import erp.system.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -37,6 +39,7 @@ public class LeaveRequestService {
     private final EmployeeRepository employeeRepository;
     private final LeaveTypeRepository leaveTypeRepository;
     private final EmployeeLeaveBalanceRepository employeeLeaveBalanceRepository;
+    private final NotificationService notificationService;
 
     public List<LeaveRequestResponse> getMyRequests(Long employeeId) {
         return leaveRequestRepository.findAllByEmployee_EmployeeIdOrderByCreatedAtDesc(employeeId).stream()
@@ -111,7 +114,14 @@ public class LeaveRequestService {
                 .reason(reason)
                 .build();
 
-        return LeaveRequestResponse.from(leaveRequestRepository.save(leaveRequest));
+        LeaveRequest saved = leaveRequestRepository.save(leaveRequest);
+        notificationService.notifyAdmins(
+                Notification.TYPE_LEAVE_REQUESTED,
+                "휴가 신청",
+                employee.getName() + "님이 휴가를 신청했습니다.",
+                "/leave/approve"
+        );
+        return LeaveRequestResponse.from(saved);
     }
 
     @Transactional
@@ -130,6 +140,14 @@ public class LeaveRequestService {
         balance.use(leaveRequest.getLeaveDays());
         leaveRequest.approve(approver);
 
+        notificationService.notify(
+                leaveRequest.getEmployee().getEmployeeId(),
+                Notification.TYPE_LEAVE_APPROVED,
+                "휴가 승인",
+                "신청하신 휴가가 승인되었습니다.",
+                "/leave/my"
+        );
+
         return LeaveRequestResponse.from(leaveRequest);
     }
 
@@ -140,6 +158,14 @@ public class LeaveRequestService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.EMPLOYEE_NOT_FOUND));
 
         leaveRequest.reject(approver, rejectionReason);
+
+        notificationService.notify(
+                leaveRequest.getEmployee().getEmployeeId(),
+                Notification.TYPE_LEAVE_REJECTED,
+                "휴가 반려",
+                "신청하신 휴가가 반려되었습니다." + (rejectionReason != null && !rejectionReason.isBlank() ? " 사유: " + rejectionReason : ""),
+                "/leave/my"
+        );
 
         return LeaveRequestResponse.from(leaveRequest);
     }
