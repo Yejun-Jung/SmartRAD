@@ -12,6 +12,8 @@ import erp.system.notice.entity.Notice;
 import erp.system.notice.entity.NoticeView;
 import erp.system.notice.repository.NoticeRepository;
 import erp.system.notice.repository.NoticeViewRepository;
+import erp.system.notification.entity.Notification;
+import erp.system.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +29,7 @@ public class NoticeService {
     private final NoticeRepository noticeRepository;
     private final EmployeeRepository employeeRepository;
     private final NoticeViewRepository noticeViewRepository;
+    private final NotificationService notificationService;
 
     public Page<NoticeSummaryResponse> getList(String keyword, Pageable pageable) {
         String normalizedKeyword = StringUtils.hasText(keyword) ? keyword : null;
@@ -57,7 +60,18 @@ public class NoticeService {
                 .pinned(request.pinned())
                 .build();
 
-        return NoticeResponse.from(noticeRepository.save(notice));
+        Notice saved = noticeRepository.save(notice);
+
+        notificationService.notifyAllExceptSelf(
+                writerId,
+                Notification.TYPE_NOTICE_CREATED,
+                "새 공지사항",
+                "\"" + request.title() + "\" 공지사항이 등록되었습니다.",
+                "/notices/view",
+                "/notices"
+        );
+
+        return NoticeResponse.from(saved);
     }
 
     @Transactional

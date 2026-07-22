@@ -71,4 +71,21 @@ public class NotificationService {
                         .build())
         );
     }
+
+    @Transactional
+    public void notifyAllExceptSelf(Long actorId, String type, String title, String content,
+                                     String employeeLinkUrl, String adminLinkUrl) {
+        employeeRepository.findAll().forEach(recipient -> {
+            if (recipient.getEmployeeId().equals(actorId)) {
+                return;
+            }
+            notificationRepository.save(Notification.builder()
+                    .recipient(recipient)
+                    .type(type)
+                    .title(title)
+                    .content(content)
+                    .linkUrl(recipient.isAdmin() ? adminLinkUrl : employeeLinkUrl)
+                    .build());
+        });
+    }
 }

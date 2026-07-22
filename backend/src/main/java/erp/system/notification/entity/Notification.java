@@ -18,6 +18,7 @@ public class Notification extends CreatedAtEntity {
     public static final String TYPE_LEAVE_APPROVED = "LEAVE_APPROVED";
     public static final String TYPE_LEAVE_REJECTED = "LEAVE_REJECTED";
     public static final String TYPE_ATTENDANCE_CORRECTION = "ATTENDANCE_CORRECTION";
+    public static final String TYPE_NOTICE_CREATED = "NOTICE_CREATED";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
