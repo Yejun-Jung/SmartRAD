@@ -42,4 +42,12 @@ public class AuthController {
         authService.resetPassword(request);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/refresh")
+    public LoginResponse refresh(@org.springframework.security.core.annotation.AuthenticationPrincipal Long employeeId) {
+        if (employeeId == null) {
+            throw new erp.system.common.exception.BusinessException(erp.system.common.exception.ErrorCode.ACCESS_DENIED);
+        }
+        return authService.refreshToken(employeeId);
+    }
 }
