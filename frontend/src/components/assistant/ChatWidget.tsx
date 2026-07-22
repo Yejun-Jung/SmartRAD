@@ -29,7 +29,6 @@ export default function ChatWidget() {
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME_MESSAGE]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [rightOffset, setRightOffset] = useState(DEFAULT_EDGE_OFFSET);
   const scrollRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -37,52 +36,76 @@ export default function ChatWidget() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, open]);
 
-  // 닫힌 상태의 동그란 버튼이 페이지 하단 콘텐츠(페이지네이션 등)와 겹치면,
-  // 페이지 레이아웃은 건드리지 않고 버튼만 딱 겹치지 않을 만큼 왼쪽으로 비켜준다.
+  // 챗봇 버튼은 항상 같은 자리에 고정해두고, 그 발밑(오른쪽 아래 고정 영역)에
+  // 실제로 깔리는 버튼/링크만 딱 겹치지 않을 만큼씩 왼쪽으로 밀어준다.
   useEffect(() => {
-    if (open) {
-      setRightOffset(DEFAULT_EDGE_OFFSET);
-      return;
-    }
+    // element -> 지금 적용 중인 왼쪽 이동량(px). 매 계산마다 원위치로 되돌린 뒤
+    // 다시 재보정해서, 겹침이 해소되면 자연스럽게 원래 자리로 복귀하게 한다.
+    const appliedShifts = new Map<HTMLElement, number>();
 
-    const container = containerRef.current;
-    if (!container) return;
-
-    const computeOffset = () => {
-      const viewportWidth = window.innerWidth;
-      const centerY = window.innerHeight - DEFAULT_EDGE_OFFSET - CLOSED_BUTTON_SIZE / 2;
-      // 페이지네이션처럼 버튼이 여러 개 붙어 있는 경우 위젯의 원래 자리만 훑으면
-      // 옆 버튼과 다시 겹칠 수 있으므로, 오른쪽 끝에서부터 넓게(최대 400px) 훑어서
-      // 겹치는 컨트롤 중 가장 왼쪽 것 기준으로 한 번에 피한다. 버튼 사이 좁은 틈에서
-      // 섣불리 멈추지 않도록 범위 전체를 끝까지 훑는다.
-      const scanWidth = 400;
-      const step = 12;
-
-      let requiredOffset = DEFAULT_EDGE_OFFSET;
-      for (let x = viewportWidth - DEFAULT_EDGE_OFFSET; x >= viewportWidth - DEFAULT_EDGE_OFFSET - scanWidth; x -= step) {
-        const stack = document.elementsFromPoint(x, centerY);
-        // 배경 div 등은 무시하고, 실제로 누를 수 있는 컨트롤(버튼/링크 등)과 겹칠 때만 회피한다.
-        const hit = stack.find((el) => {
-          if (container.contains(el)) return false;
-          return el.closest("button, a, [role='button'], input, select") !== null;
-        });
-        if (hit) {
-          const control = hit.closest("button, a, [role='button'], input, select") as HTMLElement;
-          const rect = control.getBoundingClientRect();
-          requiredOffset = Math.max(requiredOffset, viewportWidth - rect.left + AVOIDANCE_GAP);
-        }
-      }
-      setRightOffset(requiredOffset);
+    const restoreAll = () => {
+      appliedShifts.forEach((_, el) => {
+        el.style.transform = "";
+      });
+      appliedShifts.clear();
     };
 
-    computeOffset();
-    window.addEventListener("scroll", computeOffset, true);
-    window.addEventListener("resize", computeOffset);
-    const interval = window.setInterval(computeOffset, 400);
+    const sync = () => {
+      // 정확한 위치를 재보정하기 위해 먼저 기존에 밀어둔 것들을 원위치로 되돌린다.
+      appliedShifts.forEach((_, el) => {
+        el.style.transform = "";
+      });
+
+      if (open) {
+        appliedShifts.clear();
+        return;
+      }
+
+      const container = containerRef.current;
+      if (!container) return;
+
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const widgetLeft = viewportWidth - DEFAULT_EDGE_OFFSET - CLOSED_BUTTON_SIZE;
+      const widgetTop = viewportHeight - DEFAULT_EDGE_OFFSET - CLOSED_BUTTON_SIZE;
+
+      // 닫힌 버튼(56x56) 영역을 격자로 훑어서 그 자리에 실제로 깔리는 컨트롤을 찾는다.
+      const found = new Set<HTMLElement>();
+      const steps = 6;
+      for (let i = 0; i <= steps; i++) {
+        for (let j = 0; j <= steps; j++) {
+          const x = widgetLeft + (CLOSED_BUTTON_SIZE * i) / steps;
+          const y = widgetTop + (CLOSED_BUTTON_SIZE * j) / steps;
+          const stack = document.elementsFromPoint(x, y);
+          const topOutsideWidget = stack.find((el) => !container.contains(el));
+          const control = topOutsideWidget?.closest("button, a, [role='button'], input, select") as HTMLElement | null;
+          if (control) found.add(control);
+        }
+      }
+
+      const nextShifts = new Map<HTMLElement, number>();
+      found.forEach((el) => {
+        const rect = el.getBoundingClientRect(); // 위에서 원위치로 되돌렸으니 원래 위치 기준
+        const overlap = rect.right - widgetLeft + AVOIDANCE_GAP;
+        if (overlap > 0) {
+          el.style.transition = "transform 150ms ease";
+          el.style.transform = `translateX(-${overlap}px)`;
+          nextShifts.set(el, overlap);
+        }
+      });
+      appliedShifts.clear();
+      nextShifts.forEach((value, key) => appliedShifts.set(key, value));
+    };
+
+    sync();
+    window.addEventListener("scroll", sync, true);
+    window.addEventListener("resize", sync);
+    const interval = window.setInterval(sync, 400);
     return () => {
-      window.removeEventListener("scroll", computeOffset, true);
-      window.removeEventListener("resize", computeOffset);
+      window.removeEventListener("scroll", sync, true);
+      window.removeEventListener("resize", sync);
       window.clearInterval(interval);
+      restoreAll();
     };
   }, [open]);
 
@@ -117,11 +140,7 @@ export default function ChatWidget() {
   };
 
   return (
-    <div
-      ref={containerRef}
-      className="fixed bottom-6 z-[90] flex flex-col items-end transition-[right] duration-200"
-      style={{ right: rightOffset }}
-    >
+    <div ref={containerRef} className="fixed bottom-6 right-6 z-[90] flex flex-col items-end">
       {open && (
         <div className="mb-3 flex h-[480px] w-80 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
           <div className="flex items-center justify-between border-b border-slate-200 bg-indigo-600 px-4 py-3 text-white">
