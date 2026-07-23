@@ -18,6 +18,7 @@ import {
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import Modal, { ModalCancelButton } from "@/components/common/Modal";
+import * as XLSX from "xlsx";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081/api";
@@ -26,6 +27,7 @@ const pageSize = 10;
 interface PayrollResponse {
   payrollId: number;
   employeeId: number;
+  employeeNo?: string;
   employeeNameSnapshot: string;
   departmentNameSnapshot: string | null;
   positionNameSnapshot: string | null;
@@ -647,27 +649,24 @@ export default function PayrollProcessPage() {
 
     const formatDateStr = (val: string | null) => val ? val.replaceAll("-", ".") : "지급 예정";
 
-    const lines = [
-      "SmartHR 급여 명세서",
-      `${detailData.payroll.employeeNameSnapshot} 님의 ${formatMonth(detailData.payroll.payrollYearMonth)} 급여`,
-      `지급일: ${formatDateStr(detailData.payroll.paymentDate)}`,
-      "",
-      "[지급 항목]",
-      ...earnings.map((item) => `${item.itemName}: ${formatCurrency(item.amount)}`),
-      `지급 합계: ${formatCurrency(totalEarnings)}`,
-      "",
-      "[공제 항목]",
-      ...deductions.map((item) => `${item.itemName}: -${formatCurrency(item.amount)}`),
-      `공제 합계: -${formatCurrency(totalDeductions)}`,
-      "",
-      `실수령액: ${formatCurrency(netPay)}`,
+    const wsData = [
+      ["SmartHR 급여 명세서"],
+      [`${detailData.payroll.employeeNameSnapshot} 님의 ${formatMonth(detailData.payroll.payrollYearMonth)} 급여`, `지급일: ${formatDateStr(detailData.payroll.paymentDate)}`],
+      [],
+      ["[지급 항목]"],
+      ...earnings.map((item) => [item.itemName, item.amount]),
+      ["지급 합계", totalEarnings],
+      [],
+      ["[공제 항목]"],
+      ...deductions.map((item) => [item.itemName, item.amount]),
+      ["공제 합계", totalDeductions],
+      [],
+      ["실수령액", netPay]
     ];
-    const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `${detailData.payroll.employeeNameSnapshot}_${formatMonth(detailData.payroll.payrollYearMonth).replace(" ", "")}_급여명세서.txt`;
-    link.click();
-    URL.revokeObjectURL(link.href);
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "급여명세서");
+    XLSX.writeFile(wb, `${detailData.payroll.employeeNameSnapshot}_${formatMonth(detailData.payroll.payrollYearMonth).replace(" ", "")}_급여명세서.xlsx`);
   };
 
   const exportTransferFile = () => {
@@ -677,16 +676,11 @@ export default function PayrollProcessPage() {
       return;
     }
     const headers = ["사번", "성명", "은행", "계좌번호", "예금주", "실지급액"];
-    const lines = targets.map((row) => [row.employeeNo, row.name, row.bankName, row.accountNumber, row.depositor, row.netPay]);
-    const csv = `﻿${[headers, ...lines].map((line) => line.map(csvCell).join(",")).join("\r\n")}`;
-    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `payroll-transfer-${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    URL.revokeObjectURL(url);
+    const wsData = [headers, ...targets.map((row) => [row.employeeNo, row.name, row.bankName, row.accountNumber, row.depositor, row.netPay])];
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "급여이체목록");
+    XLSX.writeFile(wb, `payroll-transfer-${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
   const summaryCards = [
@@ -760,7 +754,8 @@ export default function PayrollProcessPage() {
         : { text: "지급 중", className: "bg-indigo-50 text-indigo-600" };
 
   return (
-    <div className="payroll-statement-print mx-auto max-w-[1600px] space-y-5 text-slate-900">
+    <>
+    <div className="print:hidden payroll-statement-print mx-auto max-w-[1600px] space-y-5 text-slate-900">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">급여 지급 처리</h1>
@@ -1441,5 +1436,58 @@ export default function PayrollProcessPage() {
         </Modal>
       )}
     </div>
+
+    {detailData && detailOpen && (
+      <div className="hidden print:block fixed inset-0 bg-white z-[9999] p-12 text-black text-sm min-h-screen">
+        <h1 className="text-3xl font-extrabold text-center mb-10 pb-4">급여 명세서</h1>
+        <div className="flex justify-between items-end mb-6 border-b-2 border-black pb-4">
+          <div>
+            <p className="font-bold text-lg">사번: {detailData.payroll.employeeNo ?? detailData.payroll.employeeId} | 성명: {detailData.payroll.employeeNameSnapshot}</p>
+            <p className="mt-2 font-bold text-lg">귀속연월: {formatMonth(detailData.payroll.payrollYearMonth)}</p>
+            <p className="mt-1 text-base">지급일자: {detailData.payroll.paymentDate ? detailData.payroll.paymentDate.replaceAll("-", ".") : "지급 예정"}</p>
+          </div>
+          <div className="text-right">
+            <h2 className="text-2xl font-black text-slate-800">SmartHR</h2>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-2 border-b-2 border-black mb-8">
+          <div className="border-r border-black p-4">
+            <h3 className="font-bold text-lg mb-4 text-center">지급 내역</h3>
+            <div className="space-y-3">
+              {detailData.details.filter(i => i.itemTypeCode === "EARNING").map(item => (
+                <div key={item.itemName} className="flex justify-between text-base">
+                  <span>{item.itemName}</span>
+                  <span>{formatCurrency(item.amount)}</span>
+                </div>
+              ))}
+              {detailData.details.filter(i => i.itemTypeCode === "EARNING").length === 0 && <p className="text-center text-gray-500">내역 없음</p>}
+            </div>
+          </div>
+          <div className="p-4">
+            <h3 className="font-bold text-lg mb-4 text-center">공제 내역</h3>
+            <div className="space-y-3">
+              {detailData.details.filter(i => i.itemTypeCode === "DEDUCTION").map(item => (
+                <div key={item.itemName} className="flex justify-between text-base">
+                  <span>{item.itemName}</span>
+                  <span>{formatCurrency(item.amount)}</span>
+                </div>
+              ))}
+              {detailData.details.filter(i => i.itemTypeCode === "DEDUCTION").length === 0 && <p className="text-center text-gray-500">내역 없음</p>}
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex justify-between items-center bg-gray-100 p-4 font-bold text-lg border-b border-black">
+          <span>지급 총액: {formatCurrency(detailData.payroll.totalPayAmount ?? 0)}</span>
+          <span>공제 총액: {formatCurrency(detailData.payroll.totalDeductionAmount ?? 0)}</span>
+        </div>
+        <div className="flex justify-between items-center bg-gray-200 p-6 font-extrabold text-2xl mt-4">
+          <span>차인지급액(실수령액)</span>
+          <span>{formatCurrency(detailData.payroll.realPayAmount ?? 0)}</span>
+        </div>
+      </div>
+    )}
+    </>
   );
 }

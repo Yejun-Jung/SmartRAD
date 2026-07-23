@@ -8,6 +8,7 @@ import java.time.LocalDate;
 public record PayrollResponse(
         Long payrollId,
         Long employeeId,
+        String employeeNo,
         String employeeNameSnapshot,
         String departmentNameSnapshot,
         String positionNameSnapshot,
@@ -23,6 +24,7 @@ public record PayrollResponse(
         return new PayrollResponse(
                 payroll.getPayrollId(),
                 payroll.getEmployee().getEmployeeId(),
+                payroll.getEmployee().getEmployeeNo(),
                 payroll.getEmployeeNameSnapshot(),
                 payroll.getDepartmentNameSnapshot(),
                 payroll.getPositionNameSnapshot(),

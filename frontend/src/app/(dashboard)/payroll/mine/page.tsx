@@ -12,11 +12,15 @@ import {
 } from "@heroicons/react/24/outline";
 import { useEffect, useMemo, useState } from "react";
 import Modal, { ModalCancelButton } from "@/components/common/Modal";
+import * as XLSX from "xlsx";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081/api";
 
 interface Payroll {
   payrollId: number;
+  employeeId?: number;
+  employeeNo?: string;
+  employeeNameSnapshot?: string;
   payrollYearMonth: string;
   paymentDate: string | null;
   totalPayAmount: number | null;
@@ -126,31 +130,30 @@ export default function MyPayrollPage() {
 
   const downloadStatement = () => {
     if (!detail) return;
-    const lines = [
-      "SmartHR 급여 명세서",
-      `${formatMonth(detail.payroll.payrollYearMonth)} 급여`,
-      `지급일: ${formatDate(detail.payroll.paymentDate)}`,
-      "",
-      "[지급 항목]",
-      ...earnings.map((item) => `${item.itemName}: ${formatCurrency(item.amount)}`),
-      `지급 합계: ${formatCurrency(totalEarnings)}`,
-      "",
-      "[공제 항목]",
-      ...deductions.map((item) => `${item.itemName}: -${formatCurrency(item.amount)}`),
-      `공제 합계: -${formatCurrency(totalDeductions)}`,
-      "",
-      `실수령액: ${formatCurrency(netPay)}`,
+    const wsData = [
+      ["SmartHR 급여 명세서"],
+      [`사번: ${detail.payroll.employeeNo ?? detail.payroll.employeeId ?? ""} | 성명: ${detail.payroll.employeeNameSnapshot ?? ""}`],
+      [`귀속연월: ${formatMonth(detail.payroll.payrollYearMonth)}`, `지급일자: ${formatDate(detail.payroll.paymentDate)}`],
+      [],
+      ["[지급 항목]"],
+      ...earnings.map((item) => [item.itemName, item.amount]),
+      ["지급 합계", totalEarnings],
+      [],
+      ["[공제 항목]"],
+      ...deductions.map((item) => [item.itemName, item.amount]),
+      ["공제 합계", totalDeductions],
+      [],
+      ["실수령액", netPay]
     ];
-    const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `${formatMonth(detail.payroll.payrollYearMonth)}_급여명세서.txt`;
-    link.click();
-    URL.revokeObjectURL(link.href);
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "급여명세서");
+    XLSX.writeFile(wb, `${formatMonth(detail.payroll.payrollYearMonth).replace(" ", "")}_급여명세서.xlsx`);
   };
 
   return (
-    <div className="payroll-statement-print mx-auto max-w-[1600px] space-y-4 text-slate-800">
+    <>
+    <div className="print:hidden payroll-statement-print mx-auto max-w-[1600px] space-y-4 text-slate-800">
       <section>
         <h2 className="text-2xl font-bold text-slate-900">내 급여 명세서</h2>
         <p className="mt-1 text-base text-slate-500">매월 지급된 본인의 급여 명세서를 조회하고 인쇄할 수 있습니다.</p>
@@ -255,6 +258,61 @@ export default function MyPayrollPage() {
         </Modal>
       )}
     </div>
+
+    {detail && detailOpen && (
+      <div className="hidden print:block fixed inset-0 bg-white z-[9999] p-12 text-black text-sm min-h-screen">
+        <h1 className="text-3xl font-extrabold text-center mb-10 pb-4">급여 명세서</h1>
+        <div className="flex justify-between items-end mb-6 border-b-2 border-black pb-4">
+          <div>
+            {detail.payroll.employeeNameSnapshot && (
+              <p className="font-bold text-lg mb-2">사번: {detail.payroll.employeeNo ?? detail.payroll.employeeId} | 성명: {detail.payroll.employeeNameSnapshot}</p>
+            )}
+            <p className="font-bold text-lg">귀속연월: {formatMonth(detail.payroll.payrollYearMonth)}</p>
+            <p className="mt-1 text-base">지급일자: {formatDate(detail.payroll.paymentDate)}</p>
+          </div>
+          <div className="text-right">
+            <h2 className="text-2xl font-black text-slate-800">SmartHR</h2>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-2 border-b-2 border-black mb-8">
+          <div className="border-r border-black p-4">
+            <h3 className="font-bold text-lg mb-4 text-center">지급 내역</h3>
+            <div className="space-y-3">
+              {earnings.map(item => (
+                <div key={item.itemName} className="flex justify-between text-base">
+                  <span>{item.itemName}</span>
+                  <span>{formatCurrency(item.amount)}</span>
+                </div>
+              ))}
+              {earnings.length === 0 && <p className="text-center text-gray-500">내역 없음</p>}
+            </div>
+          </div>
+          <div className="p-4">
+            <h3 className="font-bold text-lg mb-4 text-center">공제 내역</h3>
+            <div className="space-y-3">
+              {deductions.map(item => (
+                <div key={item.itemName} className="flex justify-between text-base">
+                  <span>{item.itemName}</span>
+                  <span>{formatCurrency(item.amount)}</span>
+                </div>
+              ))}
+              {deductions.length === 0 && <p className="text-center text-gray-500">내역 없음</p>}
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex justify-between items-center bg-gray-100 p-4 font-bold text-lg border-b border-black">
+          <span>지급 총액: {formatCurrency(totalEarnings)}</span>
+          <span>공제 총액: {formatCurrency(totalDeductions)}</span>
+        </div>
+        <div className="flex justify-between items-center bg-gray-200 p-6 font-extrabold text-2xl mt-4">
+          <span>차인지급액(실수령액)</span>
+          <span>{formatCurrency(netPay)}</span>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
 
