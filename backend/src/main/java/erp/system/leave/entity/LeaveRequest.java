@@ -23,6 +23,7 @@ public class LeaveRequest extends CreatedAtEntity {
     public static final String STATUS_PENDING = "PENDING";
     public static final String STATUS_APPROVED = "APPROVED";
     public static final String STATUS_REJECTED = "REJECTED";
+    public static final String STATUS_CANCELED = "CANCELED";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -92,5 +93,13 @@ public class LeaveRequest extends CreatedAtEntity {
         if (!STATUS_PENDING.equals(this.status)) {
             throw new BusinessException(ErrorCode.INVALID_LEAVE_REQUEST_STATUS);
         }
+    }
+
+    public void cancel() {
+        if (STATUS_CANCELED.equals(this.status) || STATUS_REJECTED.equals(this.status)) {
+            throw new BusinessException(ErrorCode.INVALID_LEAVE_REQUEST_STATUS);
+        }
+        this.status = STATUS_CANCELED;
+        this.processedAt = LocalDateTime.now();
     }
 }

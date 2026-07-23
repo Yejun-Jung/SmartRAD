@@ -99,4 +99,9 @@ public class LeaveRequestController {
                                                              @AuthenticationPrincipal Long approverId) {
         return leaveRequestService.bulkApprove(request.leaveRequestIds(), approverId);
     }
+
+    @PatchMapping("/{id}/cancel")
+    public LeaveRequestResponse cancel(@PathVariable Long id, @AuthenticationPrincipal Long requesterId) {
+        return leaveRequestService.cancel(id, requesterId);
+    }
 }

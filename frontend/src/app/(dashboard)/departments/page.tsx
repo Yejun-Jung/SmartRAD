@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PlusIcon, PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, PencilSquareIcon, TrashIcon, CheckCircleIcon } from "@heroicons/react/24/outline";
 import dynamic from "next/dynamic";
 import DepartmentModal, { Department } from "@/components/department/DepartmentModal";
+import Modal, { ModalPrimaryButton } from "@/components/common/Modal";
 
 const Tree = dynamic(() => import("react-organizational-chart").then(mod => mod.Tree), { ssr: false });
 const TreeNode = dynamic(() => import("react-organizational-chart").then(mod => mod.TreeNode), { ssr: false });
@@ -79,6 +80,9 @@ export default function DepartmentsPage() {
   const [initialParentId, setInitialParentId] = useState<number | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
+  const [deletedDeptModalOpen, setDeletedDeptModalOpen] = useState(false);
+  const [deletedDeptHasEmployees, setDeletedDeptHasEmployees] = useState(false);
+
   useEffect(() => {
     let cancelled = false;
     async function fetchDepartments() {
@@ -112,12 +116,16 @@ export default function DepartmentsPage() {
   const handleDelete = async (id: number) => {
     if (!window.confirm("정말로 이 부서를 삭제하시겠습니까?")) return;
     try {
+      const deptStats = statsByDept.get(id);
+      const hasEmployees = deptStats ? deptStats.employeeCount > 0 : false;
       const res = await fetch(`${API_BASE_URL}/departments/${id}`, {
         method: "DELETE",
         headers: authHeaders(),
       });
       if (res.ok) {
         setRefreshKey((k) => k + 1);
+        setDeletedDeptHasEmployees(hasEmployees);
+        setDeletedDeptModalOpen(true);
       } else {
         const errData = await res.json().catch(() => null);
         alert(errData?.message || "부서를 삭제할 수 없습니다.");
@@ -297,6 +305,20 @@ export default function DepartmentsPage() {
           onClose={() => setShowModal(false)}
           onSaved={handleSaved}
         />
+      )}
+
+      {deletedDeptModalOpen && (
+        <Modal
+          icon={CheckCircleIcon}
+          title="부서 삭제 완료"
+          subtitle={deletedDeptHasEmployees ? "부서가 정상적으로 삭제되었으며, 해당 부서의 소속 인원은 '미지정' 처리되었습니다." : "부서가 정상적으로 삭제되었습니다."}
+          onClose={() => setDeletedDeptModalOpen(false)}
+          footer={
+            <ModalPrimaryButton onClick={() => setDeletedDeptModalOpen(false)}>확인</ModalPrimaryButton>
+          }
+        >
+          <></>
+        </Modal>
       )}
     </div>
   );

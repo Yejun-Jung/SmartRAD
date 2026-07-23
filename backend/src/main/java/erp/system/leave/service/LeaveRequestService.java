@@ -171,6 +171,27 @@ public class LeaveRequestService {
     }
 
     @Transactional
+    public LeaveRequestResponse cancel(Long leaveRequestId, Long requesterId) {
+        LeaveRequest leaveRequest = findById(leaveRequestId);
+        if (!leaveRequest.getEmployee().getEmployeeId().equals(requesterId)) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
+
+        if (LeaveRequest.STATUS_APPROVED.equals(leaveRequest.getStatus())) {
+            EmployeeLeaveBalance balance = employeeLeaveBalanceRepository
+                    .findByEmployee_EmployeeIdAndLeaveType_LeaveTypeId(
+                            leaveRequest.getEmployee().getEmployeeId(),
+                            leaveRequest.getLeaveType().getLeaveTypeId()
+                    )
+                    .orElseThrow(() -> new BusinessException(ErrorCode.LEAVE_BALANCE_NOT_FOUND));
+            balance.restore(leaveRequest.getLeaveDays());
+        }
+
+        leaveRequest.cancel();
+        return LeaveRequestResponse.from(leaveRequest);
+    }
+
+    @Transactional
     public List<LeaveRequestBulkApproveResult> bulkApprove(List<Long> leaveRequestIds, Long approverId) {
         return leaveRequestIds.stream()
                 .map(id -> {

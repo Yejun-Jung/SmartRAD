@@ -155,7 +155,11 @@ public class DepartmentService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.DEPARTMENT_NOT_FOUND));
 
         if (employeeRepository.existsByDepartment_DepartmentId(id)) {
-            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "소속된 직원이 있어 삭제할 수 없습니다.");
+            java.util.List<erp.system.employee.entity.Employee> employees = employeeRepository.findAllByDepartment_DepartmentId(id);
+            for (erp.system.employee.entity.Employee employee : employees) {
+                employee.setDepartment(null);
+            }
+            employeeRepository.saveAll(employees);
         }
 
         if (departmentRepository.existsByParentDepartment_DepartmentId(id)) {

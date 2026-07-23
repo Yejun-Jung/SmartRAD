@@ -45,6 +45,21 @@ public class LeavePolicyService {
     }
 
     @Transactional
+    public LeavePolicyResponse update(Long leavePolicyId, LeavePolicyCreateRequest request) {
+        LeavePolicy leavePolicy = leavePolicyRepository.findById(leavePolicyId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.LEAVE_POLICY_NOT_FOUND));
+
+        leavePolicy.update(
+                request.annualLeaveDays(),
+                request.maxCarryOverDays(),
+                request.halfDayAllowed(),
+                request.note()
+        );
+
+        return LeavePolicyResponse.from(leavePolicy);
+    }
+
+    @Transactional
     public void delete(Long leavePolicyId) {
         if (!leavePolicyRepository.existsById(leavePolicyId)) {
             throw new BusinessException(ErrorCode.LEAVE_POLICY_NOT_FOUND);
