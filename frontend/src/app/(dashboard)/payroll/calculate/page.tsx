@@ -12,7 +12,7 @@ import {
   UserGroupIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Modal, { ModalCancelButton } from "@/components/common/Modal";
 
 const API_BASE_URL =
@@ -74,6 +74,9 @@ function formatCurrency(value: number | null | undefined) {
 }
 
 function formatMonth(value: string) {
+  if (/^\d{6}$/.test(value)) {
+    return `${value.slice(0, 4)}년 ${Number(value.slice(4, 6))}월`;
+  }
   const [year, month] = value.split("-");
   return year && month ? `${year}년 ${Number(month)}월` : value;
 }
@@ -444,6 +447,7 @@ export default function PayrollCalculatePage() {
   const [detailState, setDetailState] = useState<DetailModalState | null>(null);
   const [criteriaModalOpen, setCriteriaModalOpen] = useState(false);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const hasAutoSelectedMonth = useRef(false);
 
   useEffect(() => {
     const fetchPayrolls = async () => {
@@ -455,7 +459,20 @@ export default function PayrollCalculatePage() {
         const res = await fetch(`${API_BASE_URL}/payrolls`, { headers: authHeaders() });
         if (!res.ok) throw new Error("급여 계산 결과를 불러오지 못했습니다.");
         const payrolls = (await res.json()) as PayrollResponse[];
-        setPayrollRows(payrolls.map(toRow));
+        const nextRows = payrolls.map(toRow);
+        setPayrollRows(nextRows);
+
+        if (!hasAutoSelectedMonth.current && nextRows.length > 0) {
+          hasAutoSelectedMonth.current = true;
+          const latestRaw = nextRows.reduce(
+            (latest, row) =>
+              row.payrollYearMonthRaw > latest ? row.payrollYearMonthRaw : latest,
+            nextRows[0].payrollYearMonthRaw,
+          );
+          const latestMonth = formatMonth(latestRaw);
+          setDraftFilters((prev) => ({ ...prev, payrollMonth: latestMonth }));
+          setAppliedFilters((prev) => ({ ...prev, payrollMonth: latestMonth }));
+        }
       } catch (error) {
         console.error("Failed to fetch payrolls", error);
         setErrorMessage(
@@ -723,34 +740,34 @@ export default function PayrollCalculatePage() {
 
   const closeDetail = () => setDetailState(null);
 
-  const completedCount = payrollRows.filter(
+  const completedCount = filteredRows.filter(
     (row) => row.calcStatus !== "계산 전",
   ).length;
-  const reviewCount = payrollRows.filter(
+  const reviewCount = filteredRows.filter(
     (row) => row.reviewStatus !== "정상",
   ).length;
-  const pendingCount = Math.max(payrollRows.length - completedCount, 0);
-  const totalGrossPay = payrollRows.reduce(
+  const pendingCount = Math.max(filteredRows.length - completedCount, 0);
+  const totalGrossPay = filteredRows.reduce(
     (sum, row) => sum + Number(row.grossPay.replace(/[^0-9]/g, "")),
     0,
   );
-  const totalDeduction = payrollRows.reduce(
+  const totalDeduction = filteredRows.reduce(
     (sum, row) => sum + Number(row.deduction.replace(/[^0-9]/g, "")),
     0,
   );
-  const totalNetPay = payrollRows.reduce(
+  const totalNetPay = filteredRows.reduce(
     (sum, row) => sum + Number(row.netPay.replace(/[^0-9]/g, "")),
     0,
   );
   const periodInfo = [
     {
       label: "귀속연월",
-      value: payrollRows[0]?.payrollMonth ?? "-",
+      value: filteredRows[0]?.payrollMonth ?? "-",
       icon: CalendarDaysIcon,
     },
     {
       label: "지급일",
-      value: payrollRows[0]?.paymentDate ?? "-",
+      value: filteredRows[0]?.paymentDate ?? "-",
       icon: BanknotesIcon,
     },
     {
@@ -767,8 +784,8 @@ export default function PayrollCalculatePage() {
   const summaryCards = [
     {
       title: "계산 대상",
-      value: `${payrollRows.length.toLocaleString("ko-KR")}명`,
-      description: "전체 급여대장 기준",
+      value: `${filteredRows.length.toLocaleString("ko-KR")}명`,
+      description: "선택된 귀속연월 기준",
       icon: UserGroupIcon,
       className: "border-slate-200 bg-white",
       iconClassName: "bg-slate-50 text-slate-500",
@@ -778,7 +795,7 @@ export default function PayrollCalculatePage() {
     {
       title: "계산 완료",
       value: `${completedCount.toLocaleString("ko-KR")}명`,
-      description: `진행률 ${payrollRows.length ? ((completedCount / payrollRows.length) * 100).toFixed(1) : "0.0"}%`,
+      description: `진행률 ${filteredRows.length ? ((completedCount / filteredRows.length) * 100).toFixed(1) : "0.0"}%`,
       icon: CheckCircleIcon,
       className: "border-indigo-200 bg-indigo-50",
       iconClassName: "bg-indigo-100 text-indigo-600",
@@ -826,7 +843,7 @@ export default function PayrollCalculatePage() {
   };
 
   const overallCalcStatus =
-    payrollRows.length === 0 || completedCount === 0
+    filteredRows.length === 0 || completedCount === 0
       ? { text: "계산 전", className: "bg-slate-100 text-slate-600" }
       : pendingCount === 0
         ? { text: "계산 완료", className: "bg-emerald-100 text-emerald-700" }
@@ -1009,7 +1026,7 @@ export default function PayrollCalculatePage() {
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-lg font-bold">직원별 급여 계산 결과</h2>
             <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
-              총 {payrollRows.length.toLocaleString("ko-KR")}명
+              총 {filteredRows.length.toLocaleString("ko-KR")}명
             </span>
             <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-600">
               계산 완료 {completedCount.toLocaleString("ko-KR")}명

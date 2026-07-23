@@ -16,7 +16,7 @@ import {
   XCircleIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Modal, { ModalCancelButton } from "@/components/common/Modal";
 import * as XLSX from "xlsx";
 
@@ -88,6 +88,7 @@ type PaymentRow = {
   accountNumber: string;
   depositor: string;
   paymentDate: string;
+  payrollYearMonth: string;
   accountStatus: AccountStatus;
   paymentStatus: PaymentStatus;
   processedAt: string;
@@ -118,6 +119,9 @@ function formatCurrency(value: number | null | undefined) {
 }
 
 function formatMonth(value: string) {
+  if (/^\d{6}$/.test(value)) {
+    return `${value.slice(0, 4)}년 ${Number(value.slice(4, 6))}월`;
+  }
   const [year, month] = value.split("-");
   return year && month ? `${year}년 ${Number(month)}월` : value;
 }
@@ -168,6 +172,7 @@ function toRow(
     accountNumber: maskAccount(employee?.accountNumber),
     depositor: employee?.accountHolder ?? payroll.employeeNameSnapshot,
     paymentDate: payroll.paymentDate ?? "-",
+    payrollYearMonth: payroll.payrollYearMonth,
     accountStatus,
     paymentStatus: (paymentStatus !== "지급완료" && accountStatus === "미등록") ? "지급실패" : paymentStatus,
     processedAt:
@@ -269,6 +274,7 @@ export default function PayrollProcessPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [criteriaModalOpen, setCriteriaModalOpen] = useState(false);
   const [failedModalOpen, setFailedModalOpen] = useState(false);
+  const hasAutoSelectedMonth = useRef(false);
 
   const refreshRows = () => setRefreshKey((key) => key + 1);
 
@@ -299,11 +305,21 @@ export default function PayrollProcessPage() {
             .map((employee) => [employee.employeeId, employee]),
         );
 
-        setRows(
-          payrolls.map((payroll) =>
-            toRow(payroll, employeeMap.get(payroll.employeeId)),
-          ),
+        const nextRows = payrolls.map((payroll) =>
+          toRow(payroll, employeeMap.get(payroll.employeeId)),
         );
+        setRows(nextRows);
+
+        if (!hasAutoSelectedMonth.current && nextRows.length > 0) {
+          hasAutoSelectedMonth.current = true;
+          const latestMonth = nextRows.reduce(
+            (latest, row) =>
+              row.payrollYearMonth > latest ? row.payrollYearMonth : latest,
+            nextRows[0].payrollYearMonth,
+          );
+          setDraftFilters((prev) => ({ ...prev, payrollMonth: latestMonth }));
+          setAppliedFilters((prev) => ({ ...prev, payrollMonth: latestMonth }));
+        }
       } catch (error) {
         console.error("Failed to fetch payroll payment rows", error);
         setErrorMessage(
@@ -320,7 +336,7 @@ export default function PayrollProcessPage() {
   }, [refreshKey]);
 
   const payrollMonths = useMemo(
-    () => ["전체", ...new Set(rows.map((row) => row.paymentDate.slice(0, 7)))],
+    () => ["전체", ...new Set(rows.map((row) => row.payrollYearMonth))],
     [rows],
   );
   const departments = useMemo(
@@ -334,7 +350,7 @@ export default function PayrollProcessPage() {
     return rows.filter((row) => {
       const matchesMonth =
         appliedFilters.payrollMonth === "전체" ||
-        row.paymentDate.startsWith(appliedFilters.payrollMonth);
+        row.payrollYearMonth === appliedFilters.payrollMonth;
       const matchesDepartment =
         appliedFilters.department === "전체" ||
         row.department === appliedFilters.department;
@@ -359,11 +375,11 @@ export default function PayrollProcessPage() {
     });
   }, [appliedFilters, rows]);
 
-  const completedRows = rows.filter((row) => row.paymentStatus === "지급완료");
-  const waitingRows = rows.filter((row) => row.paymentStatus === "지급대기");
-  const holdRows = rows.filter((row) => row.paymentStatus === "지급보류");
-  const failedRows = rows.filter((row) => row.paymentStatus === "지급실패");
-  const totalExpectedAmount = rows.reduce((sum, row) => sum + row.netPay, 0);
+  const completedRows = filteredRows.filter((row) => row.paymentStatus === "지급완료");
+  const waitingRows = filteredRows.filter((row) => row.paymentStatus === "지급대기");
+  const holdRows = filteredRows.filter((row) => row.paymentStatus === "지급보류");
+  const failedRows = filteredRows.filter((row) => row.paymentStatus === "지급실패");
+  const totalExpectedAmount = filteredRows.reduce((sum, row) => sum + row.netPay, 0);
   const completedAmount = completedRows.reduce(
     (sum, row) => sum + row.netPay,
     0,
@@ -686,7 +702,7 @@ export default function PayrollProcessPage() {
   const summaryCards = [
     {
       title: "지급 대상",
-      value: `${rows.length.toLocaleString("ko-KR")}명`,
+      value: `${filteredRows.length.toLocaleString("ko-KR")}명`,
       description: "계산 완료 기준",
       icon: UserGroupIcon,
       className: "border-slate-200 bg-white",
@@ -747,7 +763,7 @@ export default function PayrollProcessPage() {
   ];
 
   const overallPayStatus =
-    rows.length === 0 || completedRows.length === 0
+    filteredRows.length === 0 || completedRows.length === 0
       ? { text: "지급 대기", className: "bg-amber-50 text-amber-600" }
       : waitingRows.length === 0 && holdRows.length === 0 && failedRows.length === 0
         ? { text: "지급 완료", className: "bg-emerald-50 text-emerald-600" }
@@ -789,10 +805,10 @@ export default function PayrollProcessPage() {
           {[
             [
               "귀속연월",
-              rows[0] ? formatMonth(rows[0].paymentDate.slice(0, 7)) : "-",
+              filteredRows[0] ? formatMonth(filteredRows[0].payrollYearMonth) : "-",
               CalendarDaysIcon,
             ],
-            ["지급예정일", rows[0]?.paymentDate ?? "-", CalendarDaysIcon],
+            ["지급예정일", filteredRows[0]?.paymentDate ?? "-", CalendarDaysIcon],
             ["지급방식", "계좌이체", BanknotesIcon],
             ["지급대상", "계산 완료 직원", UserGroupIcon],
           ].map(([label, value, Icon]) => (
@@ -933,7 +949,9 @@ export default function PayrollProcessPage() {
                 className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-600 outline-none focus:border-indigo-400"
               >
                 {(options as string[]).map((option) => (
-                  <option key={option}>{option}</option>
+                  <option key={option} value={option}>
+                    {key === "payrollMonth" ? formatMonth(option) : option}
+                  </option>
                 ))}
               </select>
             </label>
@@ -980,7 +998,7 @@ export default function PayrollProcessPage() {
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-lg font-bold">직원별 급여 지급 현황</h2>
             <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
-              총 {rows.length.toLocaleString("ko-KR")}명
+              총 {filteredRows.length.toLocaleString("ko-KR")}명
             </span>
             <span className="rounded-full bg-teal-50 px-3 py-1 text-xs font-bold text-teal-600">
               지급 완료 {completedRows.length.toLocaleString("ko-KR")}명
