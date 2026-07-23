@@ -5,6 +5,8 @@ import erp.system.certificate.dto.EmployeeCertificateIssueResponse;
 import erp.system.certificate.dto.MyCertificateIssueCreateRequest;
 import erp.system.certificate.entity.EmployeeCertificateIssue;
 import erp.system.certificate.repository.EmployeeCertificateIssueRepository;
+import erp.system.auditlog.entity.AuditLog;
+import erp.system.auditlog.service.AuditLogService;
 import erp.system.common.exception.BusinessException;
 import erp.system.common.exception.ErrorCode;
 import erp.system.employee.entity.Employee;
@@ -34,6 +36,15 @@ public class EmployeeCertificateIssueService {
     private final EmployeeCertificateIssueRepository certificateIssueRepository;
     private final EmployeeRepository employeeRepository;
     private final NotificationService notificationService;
+    private final AuditLogService auditLogService;
+
+    private static String certificateTypeLabel(String certificateType) {
+        return switch (certificateType) {
+            case EmployeeCertificateIssue.TYPE_EMPLOYMENT -> "재직증명서";
+            case EmployeeCertificateIssue.TYPE_CAREER -> "경력증명서";
+            default -> certificateType;
+        };
+    }
 
     public List<EmployeeCertificateIssueResponse> getByEmployee(Long employeeId) {
         return certificateIssueRepository.findAllByEmployee_EmployeeIdOrderByApplicationDateDesc(employeeId).stream()
@@ -64,8 +75,16 @@ public class EmployeeCertificateIssueService {
     }
 
     @Transactional
-    public EmployeeCertificateIssueResponse create(EmployeeCertificateIssueCreateRequest request) {
-        return createForEmployee(request.employeeId(), request.certificateType(), request.purpose(), request.memo());
+    public EmployeeCertificateIssueResponse create(EmployeeCertificateIssueCreateRequest request, Long actorId) {
+        EmployeeCertificateIssueResponse response = createForEmployee(
+                request.employeeId(), request.certificateType(), request.purpose(), request.memo());
+        auditLogService.log(
+                actorId,
+                AuditLog.ACTION_CERTIFICATE_CREATE,
+                "증명서 발급 신청 등록: " + response.employeeName() + " (" + certificateTypeLabel(request.certificateType()) + ")",
+                null
+        );
+        return response;
     }
 
     @Transactional
@@ -97,7 +116,7 @@ public class EmployeeCertificateIssueService {
     }
 
     @Transactional
-    public EmployeeCertificateIssueResponse approve(Long id) {
+    public EmployeeCertificateIssueResponse approve(Long id, Long actorId) {
         EmployeeCertificateIssue issue = findActive(id);
         issue.approve();
         notificationService.notify(
@@ -107,11 +126,17 @@ public class EmployeeCertificateIssueService {
                 "신청하신 증명서 발급이 승인되었습니다.",
                 "/certificates/my"
         );
+        auditLogService.log(
+                actorId,
+                AuditLog.ACTION_CERTIFICATE_APPROVE,
+                "증명서 발급 승인: " + issue.getEmployee().getName() + " (" + certificateTypeLabel(issue.getCertificateType()) + ")",
+                null
+        );
         return EmployeeCertificateIssueResponse.from(issue);
     }
 
     @Transactional
-    public EmployeeCertificateIssueResponse reject(Long id, String memo) {
+    public EmployeeCertificateIssueResponse reject(Long id, String memo, Long actorId) {
         EmployeeCertificateIssue issue = findActive(id);
         issue.reject(memo);
         notificationService.notify(
@@ -121,11 +146,17 @@ public class EmployeeCertificateIssueService {
                 "신청하신 증명서 발급이 반려되었습니다." + (memo != null && !memo.isBlank() ? " 사유: " + memo : ""),
                 "/certificates/my"
         );
+        auditLogService.log(
+                actorId,
+                AuditLog.ACTION_CERTIFICATE_REJECT,
+                "증명서 발급 반려: " + issue.getEmployee().getName() + " (" + certificateTypeLabel(issue.getCertificateType()) + ")",
+                memo
+        );
         return EmployeeCertificateIssueResponse.from(issue);
     }
 
     @Transactional
-    public EmployeeCertificateIssueResponse issue(Long id) {
+    public EmployeeCertificateIssueResponse issue(Long id, Long actorId) {
         EmployeeCertificateIssue issue = findActive(id);
         issue.issue();
         notificationService.notify(
@@ -134,6 +165,12 @@ public class EmployeeCertificateIssueService {
                 "증명서 발급 완료",
                 "신청하신 증명서가 발급되었습니다.",
                 "/certificates/my"
+        );
+        auditLogService.log(
+                actorId,
+                AuditLog.ACTION_CERTIFICATE_ISSUE,
+                "증명서 발급 완료 처리: " + issue.getEmployee().getName() + " (" + certificateTypeLabel(issue.getCertificateType()) + ")",
+                null
         );
         return EmployeeCertificateIssueResponse.from(issue);
     }

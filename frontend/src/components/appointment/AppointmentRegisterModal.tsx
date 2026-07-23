@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ArrowsRightLeftIcon } from "@heroicons/react/24/outline";
 import { APPOINTMENT_TYPE_OPTIONS } from "./types";
 import Modal, { ModalCancelButton, ModalPrimaryButton } from "@/components/common/Modal";
+import SearchableSelect from "@/components/common/SearchableSelect";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081/api";
 
@@ -38,7 +39,6 @@ export default function AppointmentRegisterModal({ onClose, onSaved }: Props) {
   const [effectiveDate, setEffectiveDate] = useState(todayString());
   const [toDepartmentId, setToDepartmentId] = useState("");
   const [toPositionId, setToPositionId] = useState("");
-  const [toJobTitle, setToJobTitle] = useState("");
   const [reason, setReason] = useState("");
   const [memo, setMemo] = useState("");
 
@@ -97,7 +97,6 @@ export default function AppointmentRegisterModal({ onClose, onSaved }: Props) {
           effectiveDate,
           toDepartmentId: toDepartmentId ? Number(toDepartmentId) : null,
           toPositionId: toPositionId ? Number(toPositionId) : null,
-          toJobTitle: toJobTitle || null,
           reason: reason || null,
           memo: memo || null,
         }),
@@ -132,13 +131,13 @@ export default function AppointmentRegisterModal({ onClose, onSaved }: Props) {
       }
     >
             <div>
-              <label className={labelClasses}>대상 직원 *</label>
-              <select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} required className={inputClasses}>
-                <option value="">직원을 선택하세요</option>
-                {employees.map((option) => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
-                ))}
-              </select>
+              <SearchableSelect
+                label="대상 직원 *"
+                value={employeeId}
+                onChange={setEmployeeId}
+                options={employees}
+                placeholder="이름, 부서, 직급으로 검색"
+              />
             </div>
 
             <div>
@@ -180,11 +179,6 @@ export default function AppointmentRegisterModal({ onClose, onSaved }: Props) {
                   ))}
                 </select>
               </div>
-            </div>
-
-            <div>
-              <label className={labelClasses}>변경 후 직책</label>
-              <input value={toJobTitle} onChange={(e) => setToJobTitle(e.target.value)} placeholder="예: 팀장" className={inputClasses} />
             </div>
 
             <div>

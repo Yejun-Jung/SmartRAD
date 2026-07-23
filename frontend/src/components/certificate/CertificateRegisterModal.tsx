@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { DocumentTextIcon } from "@heroicons/react/24/outline";
 import { CERTIFICATE_TYPE_OPTIONS } from "./types";
 import Modal, { ModalCancelButton, ModalPrimaryButton } from "@/components/common/Modal";
+import SearchableSelect from "@/components/common/SearchableSelect";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081/api";
 
@@ -100,13 +101,13 @@ export default function CertificateRegisterModal({ onClose, onSaved }: Props) {
       }
     >
             <div>
-              <label className={labelClasses}>신청자 *</label>
-              <select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} required className={inputClasses}>
-                <option value="">직원을 선택하세요</option>
-                {employees.map((option) => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
-                ))}
-              </select>
+              <SearchableSelect
+                label="신청자 *"
+                value={employeeId}
+                onChange={setEmployeeId}
+                options={employees}
+                placeholder="이름, 부서, 직급으로 검색"
+              />
             </div>
 
             <div>

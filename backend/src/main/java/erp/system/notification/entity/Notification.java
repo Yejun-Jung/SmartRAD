@@ -32,6 +32,8 @@ public class Notification extends CreatedAtEntity {
     public static final String TYPE_EVENT_SUPPORT_APPROVED = "EVENT_SUPPORT_APPROVED";
     public static final String TYPE_EVENT_SUPPORT_REJECTED = "EVENT_SUPPORT_REJECTED";
     public static final String TYPE_EVENT_SUPPORT_PAID = "EVENT_SUPPORT_PAID";
+    public static final String TYPE_DEPARTMENT_CREATED = "DEPARTMENT_CREATED";
+    public static final String TYPE_DEPARTMENT_UPDATED = "DEPARTMENT_UPDATED";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

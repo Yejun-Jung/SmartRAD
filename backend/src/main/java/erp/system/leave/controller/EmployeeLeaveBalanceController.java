@@ -30,7 +30,8 @@ public class EmployeeLeaveBalanceController {
     }
 
     @PostMapping
-    public ResponseEntity<EmployeeLeaveBalanceResponse> grant(@Valid @RequestBody EmployeeLeaveBalanceGrantRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(employeeLeaveBalanceService.grant(request));
+    public ResponseEntity<EmployeeLeaveBalanceResponse> grant(@Valid @RequestBody EmployeeLeaveBalanceGrantRequest request,
+                                                               @AuthenticationPrincipal Long requesterId) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(employeeLeaveBalanceService.grant(request, requesterId));
     }
 }

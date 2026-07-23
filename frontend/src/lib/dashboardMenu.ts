@@ -20,6 +20,7 @@ import {
   ReceiptPercentIcon,
   GiftIcon,
   BuildingOfficeIcon,
+  ClipboardDocumentListIcon,
 } from "@heroicons/react/24/outline";
 
 export const dashboardMenuGroups = [
@@ -71,6 +72,12 @@ export const dashboardMenuGroups = [
     items: [
       { name: "공지사항", href: "/notices/view", icon: MegaphoneIcon, adminOnly: false },
       { name: "공지사항 관리", href: "/notices", icon: MegaphoneIcon, adminOnly: true },
+    ]
+  },
+  {
+    title: "시스템 관리",
+    items: [
+      { name: "관리자 활동 로그", href: "/audit-logs", icon: ClipboardDocumentListIcon, adminOnly: true },
     ]
   }
 ];

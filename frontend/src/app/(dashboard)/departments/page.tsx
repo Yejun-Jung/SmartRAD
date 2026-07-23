@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { PlusIcon, PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
 import dynamic from "next/dynamic";
 import DepartmentModal, { Department } from "@/components/department/DepartmentModal";
+import DepartmentDeleteModal from "@/components/department/DepartmentDeleteModal";
 
 const Tree = dynamic(() => import("react-organizational-chart").then(mod => mod.Tree), { ssr: false });
 const TreeNode = dynamic(() => import("react-organizational-chart").then(mod => mod.TreeNode), { ssr: false });
@@ -77,6 +78,7 @@ export default function DepartmentsPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingDept, setEditingDept] = useState<Department | null>(null);
   const [initialParentId, setInitialParentId] = useState<number | null>(null);
+  const [deletingDept, setDeletingDept] = useState<Department | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -109,22 +111,13 @@ export default function DepartmentsPage() {
     return () => { cancelled = true; };
   }, [refreshKey]);
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm("정말로 이 부서를 삭제하시겠습니까?")) return;
-    try {
-      const res = await fetch(`${API_BASE_URL}/departments/${id}`, {
-        method: "DELETE",
-        headers: authHeaders(),
-      });
-      if (res.ok) {
-        setRefreshKey((k) => k + 1);
-      } else {
-        const errData = await res.json().catch(() => null);
-        alert(errData?.message || "부서를 삭제할 수 없습니다.");
-      }
-    } catch (err: any) {
-      alert("오류가 발생했습니다.");
-    }
+  const handleDeleteClick = (dept: Department) => {
+    setDeletingDept(dept);
+  };
+
+  const handleDeleted = () => {
+    setDeletingDept(null);
+    setRefreshKey((k) => k + 1);
   };
 
   const handleOpenNew = (parentId: number | null = null) => {
@@ -179,7 +172,7 @@ export default function DepartmentsPage() {
                 <PencilSquareIcon className="w-5 h-5" />
               </button>
               <button
-                onClick={() => handleDelete(node.departmentId)}
+                onClick={() => handleDeleteClick(node)}
                 className="p-1.5 text-rose-600 hover:bg-rose-50 rounded transition-colors"
                 title="삭제"
               >
@@ -296,6 +289,15 @@ export default function DepartmentsPage() {
           initialParentId={initialParentId}
           onClose={() => setShowModal(false)}
           onSaved={handleSaved}
+        />
+      )}
+
+      {deletingDept && (
+        <DepartmentDeleteModal
+          department={deletingDept}
+          departments={departments}
+          onClose={() => setDeletingDept(null)}
+          onDeleted={handleDeleted}
         />
       )}
     </div>

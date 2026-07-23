@@ -1,5 +1,7 @@
 package erp.system.notice.service;
 
+import erp.system.auditlog.entity.AuditLog;
+import erp.system.auditlog.service.AuditLogService;
 import erp.system.common.exception.BusinessException;
 import erp.system.common.exception.ErrorCode;
 import erp.system.employee.entity.Employee;
@@ -30,6 +32,7 @@ public class NoticeService {
     private final EmployeeRepository employeeRepository;
     private final NoticeViewRepository noticeViewRepository;
     private final NotificationService notificationService;
+    private final AuditLogService auditLogService;
 
     public Page<NoticeSummaryResponse> getList(String keyword, Pageable pageable) {
         String normalizedKeyword = StringUtils.hasText(keyword) ? keyword : null;
@@ -71,20 +74,25 @@ public class NoticeService {
                 "/notices"
         );
 
+        auditLogService.log(writerId, AuditLog.ACTION_NOTICE_CREATE, "공지사항 등록: " + request.title(), null);
+
         return NoticeResponse.from(saved);
     }
 
     @Transactional
-    public NoticeResponse update(Long noticeId, NoticeUpdateRequest request) {
+    public NoticeResponse update(Long noticeId, NoticeUpdateRequest request, Long actorId) {
         Notice notice = findActive(noticeId);
         notice.update(request.title(), request.content(), request.pinned());
+        auditLogService.log(actorId, AuditLog.ACTION_NOTICE_UPDATE, "공지사항 수정: " + request.title(), null);
         return NoticeResponse.from(notice);
     }
 
     @Transactional
-    public void delete(Long noticeId) {
+    public void delete(Long noticeId, Long actorId) {
         Notice notice = findActive(noticeId);
+        String title = notice.getTitle();
         notice.markDeleted();
+        auditLogService.log(actorId, AuditLog.ACTION_NOTICE_DELETE, "공지사항 삭제: " + title, null);
     }
 
     private Notice findActive(Long noticeId) {

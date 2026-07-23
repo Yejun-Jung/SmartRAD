@@ -43,13 +43,14 @@ public class NoticeController {
     }
 
     @PutMapping("/{id}")
-    public NoticeResponse update(@PathVariable Long id, @Valid @RequestBody NoticeUpdateRequest request) {
-        return noticeService.update(id, request);
+    public NoticeResponse update(@PathVariable Long id, @Valid @RequestBody NoticeUpdateRequest request,
+                                  @AuthenticationPrincipal Long requesterId) {
+        return noticeService.update(id, request, requesterId);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        noticeService.delete(id);
+    public ResponseEntity<Void> delete(@PathVariable Long id, @AuthenticationPrincipal Long requesterId) {
+        noticeService.delete(id, requesterId);
         return ResponseEntity.noContent().build();
     }
 }

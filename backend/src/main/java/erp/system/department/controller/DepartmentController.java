@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,18 +31,21 @@ public class DepartmentController {
     }
 
     @PostMapping
-    public ResponseEntity<DepartmentResponse> create(@Valid @RequestBody DepartmentCreateRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(departmentService.create(request));
+    public ResponseEntity<DepartmentResponse> create(@Valid @RequestBody DepartmentCreateRequest request,
+                                                      @AuthenticationPrincipal Long requesterId) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(departmentService.create(request, requesterId));
     }
 
     @PutMapping("/{id}")
-    public DepartmentResponse update(@PathVariable Long id, @Valid @RequestBody erp.system.department.dto.DepartmentUpdateRequest request) {
-        return departmentService.update(id, request);
+    public DepartmentResponse update(@PathVariable Long id, @Valid @RequestBody erp.system.department.dto.DepartmentUpdateRequest request,
+                                      @AuthenticationPrincipal Long requesterId) {
+        return departmentService.update(id, request, requesterId);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id) {
-        departmentService.delete(id);
+    public void delete(@PathVariable Long id, @RequestParam(required = false) Long reassignToDepartmentId,
+                        @AuthenticationPrincipal Long requesterId) {
+        departmentService.delete(id, reassignToDepartmentId, requesterId);
     }
 }

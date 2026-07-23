@@ -1,5 +1,7 @@
 package erp.system.leave.service;
 
+import erp.system.auditlog.entity.AuditLog;
+import erp.system.auditlog.service.AuditLogService;
 import erp.system.common.exception.BusinessException;
 import erp.system.common.exception.ErrorCode;
 import erp.system.employee.entity.Employee;
@@ -29,6 +31,7 @@ public class EmployeeLeaveBalanceService {
     private final EmployeeLeaveBalanceRepository employeeLeaveBalanceRepository;
     private final EmployeeRepository employeeRepository;
     private final LeaveTypeRepository leaveTypeRepository;
+    private final AuditLogService auditLogService;
 
     public List<EmployeeLeaveBalanceResponse> getByEmployee(Long employeeId) {
         return employeeLeaveBalanceRepository.findAllByEmployee_EmployeeId(employeeId).stream()
@@ -37,7 +40,7 @@ public class EmployeeLeaveBalanceService {
     }
 
     @Transactional
-    public EmployeeLeaveBalanceResponse grant(EmployeeLeaveBalanceGrantRequest request) {
+    public EmployeeLeaveBalanceResponse grant(EmployeeLeaveBalanceGrantRequest request, Long actorId) {
         Employee employee = employeeRepository.findById(request.employeeId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.EMPLOYEE_NOT_FOUND));
         LeaveType leaveType = leaveTypeRepository.findById(request.leaveTypeId())
@@ -50,7 +53,14 @@ public class EmployeeLeaveBalanceService {
                 .expireDate(request.expireDate())
                 .build();
 
-        return EmployeeLeaveBalanceResponse.from(employeeLeaveBalanceRepository.save(balance));
+        EmployeeLeaveBalanceResponse response = EmployeeLeaveBalanceResponse.from(employeeLeaveBalanceRepository.save(balance));
+        auditLogService.log(
+                actorId,
+                AuditLog.ACTION_LEAVE_BALANCE_GRANT,
+                "휴가 잔여일수 등록: " + employee.getName() + " (" + leaveType.getLeaveTypeName() + " " + request.totalDays() + "일)",
+                null
+        );
+        return response;
     }
 
     @Transactional

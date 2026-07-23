@@ -3,23 +3,16 @@
 import { useEffect, useState } from "react";
 import { PencilSquareIcon } from "@heroicons/react/24/outline";
 import Modal, { ModalCancelButton, ModalPrimaryButton } from "@/components/common/Modal";
-import { EMPLOYEE_DOCUMENT_TYPE_OPTIONS } from "@/components/employee/documentTypes";
+import { resolveFileUrl } from "@/lib/fileUrl";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081/api";
-const FILE_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, "");
 
 function authHeaders(): HeadersInit {
   const token = window.localStorage.getItem("accessToken") ?? window.sessionStorage.getItem("accessToken");
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-type EmployeeDocument = {
-  employeeDocumentId: number;
-  documentType: string;
-  attachmentUrl: string;
-  attachmentName: string;
-  createdAt: string;
-};
+
 
 const STATUS_OPTIONS = [
   { value: "ACTIVE", label: "재직", selectedClasses: "border-emerald-500 bg-emerald-50 text-emerald-600" },
@@ -42,65 +35,8 @@ export default function EmployeeEditModal({ employee, onClose, onSave }: any) {
   });
 
   const [loading, setLoading] = useState(false);
-  const [documents, setDocuments] = useState<EmployeeDocument[]>([]);
-  const [uploadingType, setUploadingType] = useState<string | null>(null);
-
-  const fetchDocuments = async () => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/employees/${employee.employeeId}/documents`, { headers: authHeaders() });
-      if (res.ok) {
-        setDocuments(await res.json());
-      }
-    } catch (error) {
-      console.error("Failed to fetch employee documents", error);
-    }
-  };
-
-  useEffect(() => {
-    fetchDocuments();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [employee.employeeId]);
-
-  const handleDocumentUpload = async (documentType: string, file: File) => {
-    setUploadingType(documentType);
-    try {
-      const formData = new FormData();
-      formData.append("documentType", documentType);
-      formData.append("file", file);
-      const res = await fetch(`${API_BASE_URL}/employees/${employee.employeeId}/documents`, {
-        method: "POST",
-        headers: authHeaders(),
-        body: formData,
-      });
-      if (res.ok) {
-        await fetchDocuments();
-      } else {
-        alert("서류 업로드에 실패했습니다.");
-      }
-    } catch (error) {
-      console.error(error);
-      alert("서류 업로드 중 오류가 발생했습니다.");
-    } finally {
-      setUploadingType(null);
-    }
-  };
-
-  const handleDocumentDelete = async (documentId: number) => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/employees/${employee.employeeId}/documents/${documentId}`, {
-        method: "DELETE",
-        headers: authHeaders(),
-      });
-      if (res.ok) {
-        setDocuments((current) => current.filter((document) => document.employeeDocumentId !== documentId));
-      } else {
-        alert("서류 삭제에 실패했습니다.");
-      }
-    } catch (error) {
-      console.error(error);
-      alert("서류 삭제 중 오류가 발생했습니다.");
-    }
-  };
+  const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
+  const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
 
   const handleChange = (e: any) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -109,21 +45,37 @@ export default function EmployeeEditModal({ employee, onClose, onSave }: any) {
   const handleProfileImageChange = (e: any) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      setFormData((prev: any) => ({ ...prev, profileImage: reader.result as string }));
-    };
-    reader.readAsDataURL(file);
+    setProfileImageFile(file);
+    setProfileImagePreview(URL.createObjectURL(file));
+  };
+
+  const removeProfileImage = () => {
+    setProfileImageFile(null);
+    setProfileImagePreview(null);
+    setFormData((prev: any) => ({ ...prev, profileImage: null }));
   };
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     setLoading(true);
     try {
+      let profileImageUrl = formData.profileImage;
+      if (profileImageFile) {
+        const uploadFormData = new FormData();
+        uploadFormData.append("file", profileImageFile);
+        const uploadRes = await fetch(`${API_BASE_URL}/employees/profile-image`, {
+          method: "POST",
+          headers: authHeaders(),
+          body: uploadFormData,
+        });
+        if (!uploadRes.ok) throw new Error("프로필 사진 업로드 실패");
+        profileImageUrl = ((await uploadRes.json()) as { url: string }).url;
+      }
+
       const res = await fetch(`${API_BASE_URL}/employees/${employee.employeeId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, profileImage: profileImageUrl }),
       });
       if (res.ok) {
         onSave();
@@ -161,9 +113,9 @@ export default function EmployeeEditModal({ employee, onClose, onSave }: any) {
                 <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide">프로필 사진</h3>
               </div>
               <div className="p-4 flex items-center gap-4">
-                {formData.profileImage ? (
+                {profileImagePreview || formData.profileImage ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={formData.profileImage} alt="프로필 사진" className="w-16 h-16 rounded-full object-cover shadow-sm border border-gray-100" />
+                  <img src={profileImagePreview ?? resolveFileUrl(formData.profileImage)} alt="프로필 사진" className="w-16 h-16 rounded-full object-cover shadow-sm border border-gray-100" />
                 ) : (
                   <div className="w-16 h-16 bg-blue-500 text-white rounded-full flex items-center justify-center text-2xl font-bold shadow-sm">
                     {formData.name ? formData.name.charAt(0) : "?"}
@@ -173,10 +125,10 @@ export default function EmployeeEditModal({ employee, onClose, onSave }: any) {
                   사진 변경
                   <input type="file" accept="image/*" className="hidden" onChange={handleProfileImageChange} />
                 </label>
-                {formData.profileImage && (
+                {(profileImagePreview || formData.profileImage) && (
                   <button
                     type="button"
-                    onClick={() => setFormData((prev: any) => ({ ...prev, profileImage: null }))}
+                    onClick={removeProfileImage}
                     className="px-3 py-1.5 text-sm font-medium text-rose-600 bg-white border border-rose-200 rounded-md hover:bg-rose-50"
                   >
                     사진 삭제
@@ -209,63 +161,7 @@ export default function EmployeeEditModal({ employee, onClose, onSave }: any) {
               </div>
             </div>
 
-            <div className="border border-gray-100 rounded-lg overflow-hidden">
-              <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-100">
-                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide">첨부 서류</h3>
-              </div>
-              <div className="p-4 space-y-2">
-                {EMPLOYEE_DOCUMENT_TYPE_OPTIONS.map((docType) => {
-                  const document = documents.find((doc) => doc.documentType === docType.value);
-                  const uploading = uploadingType === docType.value;
-                  return (
-                    <div key={docType.value} className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 p-3">
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold text-gray-700">
-                          {docType.label} {docType.required ? <b className="text-rose-500">*</b> : null}
-                        </p>
-                        {document ? (
-                          <a
-                            href={`${FILE_ORIGIN}${document.attachmentUrl}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="mt-1 block truncate text-xs font-semibold text-blue-600 hover:underline"
-                          >
-                            {document.attachmentName}
-                          </a>
-                        ) : (
-                          <p className="mt-1 text-xs text-gray-400">미제출</p>
-                        )}
-                      </div>
-                      <div className="flex shrink-0 items-center gap-2">
-                        <label className="cursor-pointer rounded-md border border-gray-300 px-3 py-1.5 text-xs font-bold text-gray-600 hover:bg-gray-50">
-                          {uploading ? "업로드 중..." : document ? "재업로드" : "파일 선택"}
-                          <input
-                            type="file"
-                            disabled={uploading}
-                            className="hidden"
-                            onChange={(event) => {
-                              const file = event.target.files?.[0];
-                              event.target.value = "";
-                              if (file) void handleDocumentUpload(docType.value, file);
-                            }}
-                          />
-                        </label>
-                        {document ? (
-                          <button
-                            type="button"
-                            onClick={() => handleDocumentDelete(document.employeeDocumentId)}
-                            className="text-rose-400 hover:text-rose-600"
-                            aria-label={`${docType.label} 삭제`}
-                          >
-                            ×
-                          </button>
-                        ) : null}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+
 
             <div className="border border-gray-100 rounded-lg overflow-hidden">
               <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-100">

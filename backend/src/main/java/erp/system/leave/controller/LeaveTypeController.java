@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,7 +25,8 @@ public class LeaveTypeController {
     }
 
     @PostMapping
-    public ResponseEntity<LeaveTypeResponse> create(@Valid @RequestBody LeaveTypeCreateRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(leaveTypeService.create(request));
+    public ResponseEntity<LeaveTypeResponse> create(@Valid @RequestBody LeaveTypeCreateRequest request,
+                                                     @AuthenticationPrincipal Long requesterId) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(leaveTypeService.create(request, requesterId));
     }
 }

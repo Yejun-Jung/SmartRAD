@@ -143,9 +143,7 @@ public class Attendance extends BaseEntity {
         boolean isNightWorkCheckout = checkOutTime.toLocalTime().isAfter(NIGHT_WORK_STATUS_START_TIME);
         boolean isOvertimeCheckout = checkOutTime.toLocalTime().isAfter(OVERTIME_STATUS_START_TIME);
 
-        if (this.lateMinutes != null && this.lateMinutes > 0) {
-            this.attendanceStatusCode = STATUS_LATE;
-        } else if (this.earlyLeaveMinutes > 0) {
+        if (this.earlyLeaveMinutes > 0) {
             this.attendanceStatusCode = STATUS_EARLY_LEAVE;
         } else if (isNightWorkCheckout) {
             this.attendanceStatusCode = STATUS_NIGHT_WORK;

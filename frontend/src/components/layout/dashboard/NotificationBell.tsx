@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BellIcon } from "@heroicons/react/24/outline";
+import { BellIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useNotifications, type NotificationItem } from "@/lib/useNotifications";
 
 function relativeTime(value: string) {
@@ -19,7 +19,7 @@ function relativeTime(value: string) {
 
 export default function NotificationBell() {
   const router = useRouter();
-  const { notifications, unreadCount, loading, fetchNotifications, markAsRead, markAllAsRead } = useNotifications();
+  const { notifications, unreadCount, loading, fetchNotifications, markAsRead, markAllAsRead, deleteNotification } = useNotifications();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -78,19 +78,34 @@ export default function NotificationBell() {
               <p className="px-4 py-10 text-center text-sm text-gray-400">새로운 알림이 없습니다.</p>
             ) : (
               notifications.map((notification) => (
-                <button
-                  type="button"
+                <div
                   key={notification.notificationId}
-                  onClick={() => handleSelect(notification)}
-                  className={`flex w-full flex-col items-start gap-0.5 border-b border-gray-50 px-4 py-3 text-left last:border-b-0 hover:bg-gray-50 ${notification.read ? "" : "bg-blue-50/50"}`}
+                  className={`group relative border-b border-gray-50 last:border-b-0 hover:bg-gray-50 ${notification.read ? "" : "bg-blue-50/50"}`}
                 >
-                  <div className="flex w-full items-center gap-1.5">
-                    {!notification.read && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />}
-                    <span className={`text-sm ${notification.read ? "font-medium text-gray-700" : "font-bold text-gray-900"}`}>{notification.title}</span>
-                    <span className="ml-auto shrink-0 text-[11px] text-gray-400">{relativeTime(notification.createdAt)}</span>
-                  </div>
-                  <p className="line-clamp-2 text-xs text-gray-500">{notification.content}</p>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSelect(notification)}
+                    className="flex w-full flex-col items-start gap-0.5 px-4 py-3 pr-9 text-left"
+                  >
+                    <div className="flex w-full items-center gap-1.5">
+                      {!notification.read && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />}
+                      <span className={`text-sm ${notification.read ? "font-medium text-gray-700" : "font-bold text-gray-900"}`}>{notification.title}</span>
+                      <span className="ml-auto shrink-0 text-[11px] text-gray-400">{relativeTime(notification.createdAt)}</span>
+                    </div>
+                    <p className="line-clamp-2 text-xs text-gray-500">{notification.content}</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      deleteNotification(notification.notificationId);
+                    }}
+                    aria-label="알림 삭제"
+                    className="absolute right-3 top-3 rounded-full p-1 text-gray-300 opacity-0 hover:bg-gray-200 hover:text-gray-600 group-hover:opacity-100"
+                  >
+                    <XMarkIcon className="h-4 w-4" />
+                  </button>
+                </div>
               ))
             )}
           </div>

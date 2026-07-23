@@ -3,12 +3,16 @@ package erp.system.employee.service;
 import erp.system.allowance.entity.Allowance;
 import erp.system.allowance.entity.EmployeeAllowance;
 import erp.system.allowance.repository.EmployeeAllowanceRepository;
+import erp.system.auditlog.entity.AuditLog;
+import erp.system.auditlog.service.AuditLogService;
 import erp.system.common.exception.BusinessException;
 import erp.system.common.exception.ErrorCode;
+import erp.system.common.file.FileStorageService;
 import erp.system.common.util.SoftDeleteAware;
 import erp.system.department.entity.Department;
 import erp.system.department.repository.DepartmentRepository;
 import erp.system.employee.dto.EmployeeBaseSalaryUpdateRequest;
+import erp.system.employee.dto.EmployeeBulkCreateResult;
 import erp.system.employee.dto.EmployeeBulkEmploymentTypeRequest;
 import erp.system.employee.dto.EmployeeBulkPayrollBasicRequest;
 import erp.system.employee.dto.EmployeeBulkResult;
@@ -22,6 +26,7 @@ import erp.system.employee.repository.EmployeeRepository;
 import erp.system.employmenttype.entity.EmploymentType;
 import erp.system.employmenttype.repository.EmploymentTypeRepository;
 import erp.system.leave.service.EmployeeLeaveBalanceService;
+import erp.system.leave.service.LeaveRequestService;
 import erp.system.notification.entity.Notification;
 import erp.system.notification.service.NotificationService;
 import erp.system.position.entity.Position;
@@ -34,9 +39,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.time.Year;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -52,7 +59,10 @@ public class EmployeeService {
     private final EmployeeAllowanceRepository employeeAllowanceRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmployeeLeaveBalanceService employeeLeaveBalanceService;
+    private final LeaveRequestService leaveRequestService;
     private final NotificationService notificationService;
+    private final AuditLogService auditLogService;
+    private final FileStorageService fileStorageService;
 
     private static String employeeStatusLabel(String status) {
         if (status == null) return "-";
@@ -112,7 +122,48 @@ public class EmployeeService {
     }
 
     @Transactional
-    public EmployeeResponse create(EmployeeCreateRequest request){
+    public EmployeeResponse create(EmployeeCreateRequest request, Long actorId){
+        Employee savedEmployee = createInternal(request);
+
+        auditLogService.log(
+                actorId,
+                AuditLog.ACTION_EMPLOYEE_CREATE,
+                "직원 등록: " + savedEmployee.getName() + "(" + savedEmployee.getEmployeeNo() + ")",
+                null
+        );
+
+        return EmployeeResponse.from(savedEmployee);
+    }
+
+    @Transactional
+    public List<EmployeeBulkCreateResult> bulkCreate(List<EmployeeCreateRequest> items, Long actorId) {
+        List<EmployeeBulkCreateResult> results = new ArrayList<>();
+        int successCount = 0;
+
+        for (int i = 0; i < items.size(); i++) {
+            EmployeeCreateRequest item = items.get(i);
+            try {
+                Employee savedEmployee = createInternal(item);
+                results.add(new EmployeeBulkCreateResult(i, item.name(), true, savedEmployee.getEmployeeNo(), null));
+                successCount++;
+            } catch (BusinessException e) {
+                results.add(new EmployeeBulkCreateResult(i, item.name(), false, null, e.getMessage()));
+            } catch (Exception e) {
+                results.add(new EmployeeBulkCreateResult(i, item.name(), false, null, "등록 중 오류가 발생했습니다."));
+            }
+        }
+
+        auditLogService.log(
+                actorId,
+                AuditLog.ACTION_EMPLOYEE_BULK_CREATE,
+                "직원 일괄등록: 총 " + items.size() + "명 중 " + successCount + "명 성공",
+                null
+        );
+
+        return results;
+    }
+
+    private Employee createInternal(EmployeeCreateRequest request) {
         String employeeNo = StringUtils.hasText(request.employeeNo()) ? request.employeeNo() : generateEmployeeNo();
         if(employeeRepository.existsByEmployeeNo(employeeNo)){
             throw new BusinessException(ErrorCode.DUPLICATE_EMPLOYEE_NO);
@@ -142,14 +193,14 @@ public class EmployeeService {
 
         Employee savedEmployee = employeeRepository.save(employee);
         employeeLeaveBalanceService.grantDefaultAnnualLeave(savedEmployee);
-
-        return EmployeeResponse.from(savedEmployee);
+        return savedEmployee;
     }
 
     @Transactional
     public EmployeeResponse update(Long employeeId, EmployeeUpdateRequest request, Long actorId, boolean actorIsAdmin) {
         Employee employee = findActive(employeeId);
         String previousStatus = employee.getEmployeeStatusCode();
+        String previousProfileImage = employee.getProfileImage();
 
         employee.update(
                 resolveEmploymentType(request.employmentTypeId()),
@@ -167,6 +218,11 @@ public class EmployeeService {
                 request.profileImage()
         );
 
+        if (StringUtils.hasText(previousProfileImage)
+                && !previousProfileImage.equals(request.profileImage())) {
+            fileStorageService.delete(previousProfileImage);
+        }
+
         boolean actorIsSomeoneElse = actorId != null && !actorId.equals(employeeId);
         if (actorIsAdmin && actorIsSomeoneElse && !employee.getEmployeeStatusCode().equals(previousStatus)) {
             notificationService.notify(
@@ -178,17 +234,39 @@ public class EmployeeService {
             );
         }
 
+        if (actorIsAdmin) {
+            auditLogService.log(
+                    actorId,
+                    AuditLog.ACTION_EMPLOYEE_UPDATE,
+                    "직원 정보 수정: " + employee.getName() + "(" + employee.getEmployeeNo() + ")",
+                    null
+            );
+        }
+
         return EmployeeResponse.from(employee);
     }
 
     @Transactional
-    public void delete(Long employeeId) {
-        Employee employee = findActive(employeeId);
-        employee.markDeleted();
+    public String uploadProfileImage(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR);
+        }
+        return fileStorageService.store(file).url();
     }
 
     @Transactional
-    public EmployeeResponse updateBaseSalary(Long employeeId, EmployeeBaseSalaryUpdateRequest request) {
+    public void delete(Long employeeId, Long actorId) {
+        Employee employee = findActive(employeeId);
+        int cancelledLeaveRequests = leaveRequestService.cancelAllPendingForEmployee(employeeId);
+
+        String description = "직원 삭제: " + employee.getName() + "(" + employee.getEmployeeNo() + ")"
+                + (cancelledLeaveRequests > 0 ? " - 대기중 휴가신청 " + cancelledLeaveRequests + "건 자동 취소" : "");
+        employee.markDeleted();
+        auditLogService.log(actorId, AuditLog.ACTION_EMPLOYEE_DELETE, description, null);
+    }
+
+    @Transactional
+    public EmployeeResponse updateBaseSalary(Long employeeId, EmployeeBaseSalaryUpdateRequest request, Long actorId) {
         Employee employee = findActive(employeeId);
         BigDecimal previousSalary = employee.getBaseSalary();
         employee.updateBaseSalary(request.baseSalary());
@@ -201,17 +279,23 @@ public class EmployeeService {
                     "연봉 정보가 변경되었습니다.",
                     "/payroll/mine"
             );
+            auditLogService.log(
+                    actorId,
+                    AuditLog.ACTION_PAYROLL_BASE_SALARY_UPDATE,
+                    "연봉 정보 변경: " + employee.getName() + "(" + employee.getEmployeeNo() + ")",
+                    null
+            );
         }
 
         return EmployeeResponse.from(employee);
     }
 
     @Transactional
-    public List<EmployeeBulkResult> bulkUpdateEmploymentType(List<Long> employeeIds, Long employmentTypeId) {
+    public List<EmployeeBulkResult> bulkUpdateEmploymentType(List<Long> employeeIds, Long employmentTypeId, Long actorId) {
         EmploymentType employmentType = employmentTypeRepository.findById(employmentTypeId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.EMPLOYMENT_TYPE_NOT_FOUND));
 
-        return employeeIds.stream()
+        List<EmployeeBulkResult> results = employeeIds.stream()
                 .map(employeeId -> {
                     try {
                         Employee employee = findActive(employeeId);
@@ -222,11 +306,21 @@ public class EmployeeService {
                     }
                 })
                 .toList();
+
+        long successCount = results.stream().filter(EmployeeBulkResult::success).count();
+        auditLogService.log(
+                actorId,
+                AuditLog.ACTION_PAYROLL_BULK_EMPLOYMENT_TYPE,
+                "급여형태 일괄변경: 총 " + employeeIds.size() + "명 중 " + successCount + "명 성공 (" + employmentType.getEmploymentTypeName() + ")",
+                null
+        );
+
+        return results;
     }
 
     @Transactional
-    public List<EmployeeBulkResult> bulkRegisterPayrollBasic(List<EmployeeBulkPayrollBasicRequest.Item> items) {
-        return items.stream()
+    public List<EmployeeBulkResult> bulkRegisterPayrollBasic(List<EmployeeBulkPayrollBasicRequest.Item> items, Long actorId) {
+        List<EmployeeBulkResult> results = items.stream()
                 .map(item -> {
                     try {
                         Employee employee = findActive(item.employeeId());
@@ -238,6 +332,16 @@ public class EmployeeService {
                     }
                 })
                 .toList();
+
+        long successCount = results.stream().filter(EmployeeBulkResult::success).count();
+        auditLogService.log(
+                actorId,
+                AuditLog.ACTION_PAYROLL_BULK_BASIC_REGISTER,
+                "급여정보 일괄등록: 총 " + items.size() + "명 중 " + successCount + "명 성공",
+                null
+        );
+
+        return results;
     }
 
     private String generateEmployeeNo() {

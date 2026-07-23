@@ -92,8 +92,9 @@ public class LeaveRequestController {
     }
 
     @PostMapping
-    public ResponseEntity<LeaveRequestResponse> create(@Valid @RequestBody LeaveRequestCreateRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(leaveRequestService.create(request));
+    public ResponseEntity<LeaveRequestResponse> create(@Valid @RequestBody LeaveRequestCreateRequest request,
+                                                        @AuthenticationPrincipal Long requesterId) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(leaveRequestService.create(request, requesterId));
     }
 
     @PatchMapping("/{id}/approve")

@@ -401,8 +401,7 @@ export default function SelfAttendancePage() {
         <AttendanceReasonModal
           attendanceId={reasonModalAttendanceId}
           title="조퇴 사유 작성"
-          description="18시 이전에 퇴근하셨습니다. 조퇴 사유를 남겨주세요. 급하시면 나중에 작성하셔도 됩니다."
-          skipLabel="나중에 적기"
+          description="18시 이전에 퇴근하셨습니다. 조퇴 사유를 입력해주세요."
           onClose={() => setReasonModalAttendanceId(null)}
           onSaved={() => {
             setReasonModalAttendanceId(null);

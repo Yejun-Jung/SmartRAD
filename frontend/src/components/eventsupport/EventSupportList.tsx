@@ -8,12 +8,13 @@ import {
   eventTypeLabel,
   eventStatusBadge,
   formatAmount,
+  getPolicyAmount,
   type EventSupportPage,
   type EventSupportResponse,
 } from "./types";
+import { resolveFileUrl } from "@/lib/fileUrl";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081/api";
-const FILE_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, "");
 const PAGE_SIZE = 10;
 
 function authHeaders(): HeadersInit {
@@ -99,13 +100,14 @@ export default function EventSupportList({ refreshKey, onActionComplete }: { ref
       const res = await fetch(url, { headers: authHeaders() });
       if (!res.ok) throw new Error();
       const json = (await res.json()) as EventSupportPage;
-      const headers = ["신청자", "부서", "경조사 유형", "경조사 일자", "신청 금액", "상태"];
+      const headers = ["신청자", "부서", "경조사 유형", "경조사 일자", "사유", "지원 금액", "상태"];
       const lines = json.content.map((row) => [
         row.employeeName,
         row.departmentName || "-",
         eventTypeLabel(row.eventType),
         row.eventDate,
-        row.requestAmount,
+        row.reason || "-",
+        getPolicyAmount(row.eventType).toLocaleString(),
         eventStatusBadge(row.status).label,
       ]);
       const csv = `﻿${[headers, ...lines].map((line) => line.map(csvCell).join(",")).join("\r\n")}`;
@@ -184,17 +186,17 @@ export default function EventSupportList({ refreshKey, onActionComplete }: { ref
         <table className="w-full text-left border-collapse">
           <thead className="bg-gray-50 sticky top-0 z-10">
             <tr>
-              {["신청일", "신청자", "부서", "경조사 유형", "경조사 일자", "신청 금액", "상태", "첨부", "관리"].map((title) => (
+              {["신청일", "신청자", "부서", "경조사 유형", "경조사 일자", "사유", "지원 금액", "상태", "첨부", "관리"].map((title) => (
                 <th key={title} className="py-3 px-4 text-sm font-medium text-gray-500 border-b border-gray-200 whitespace-nowrap">{title}</th>
               ))}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
             {loading ? (
-              <tr><td colSpan={9} className="py-16 text-center text-gray-500">로딩 중...</td></tr>
+              <tr><td colSpan={10} className="py-16 text-center text-gray-500">로딩 중...</td></tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td colSpan={9} className="py-16 text-center">
+                <td colSpan={10} className="py-16 text-center">
                   <div className="flex flex-col items-center justify-center text-gray-500">
                     <p className="text-base font-medium text-gray-900 mb-1">데이터가 없습니다</p>
                     <p className="text-sm">해당하는 경조비 신청 내역이 없습니다.</p>
@@ -211,13 +213,14 @@ export default function EventSupportList({ refreshKey, onActionComplete }: { ref
                     <td className="py-3 px-4 text-sm text-gray-600 whitespace-nowrap">{row.departmentName || "-"}</td>
                     <td className="py-3 px-4 text-sm text-center text-gray-600 whitespace-nowrap">{eventTypeLabel(row.eventType)}</td>
                     <td className="py-3 px-4 text-sm text-gray-600 whitespace-nowrap">{row.eventDate}</td>
-                    <td className="py-3 px-4 text-sm text-right font-semibold text-gray-900 whitespace-nowrap">{formatAmount(row.requestAmount)}</td>
+                    <td className="py-3 px-4 text-sm text-gray-600 max-w-xs truncate" title={row.reason || ""}>{row.reason || "-"}</td>
+                    <td className="py-3 px-4 text-sm text-right font-semibold text-gray-900 whitespace-nowrap">{formatAmount(getPolicyAmount(row.eventType))}</td>
                     <td className="py-3 px-4 text-sm whitespace-nowrap">
                       <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${badge.className}`}>{badge.label}</span>
                     </td>
                     <td className="py-3 px-4 text-sm whitespace-nowrap">
                       {row.attachmentUrl ? (
-                        <a href={`${FILE_ORIGIN}${row.attachmentUrl}`} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline text-xs font-medium">파일보기</a>
+                        <a href={resolveFileUrl(row.attachmentUrl)} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline text-xs font-medium">파일보기</a>
                       ) : (
                         <span className="text-xs text-gray-400">-</span>
                       )}
@@ -248,7 +251,7 @@ export default function EventSupportList({ refreshKey, onActionComplete }: { ref
         <p className="text-sm text-gray-500">
           총 {totalElements}건 중 {rows.length ? page * PAGE_SIZE + 1 : 0}-{page * PAGE_SIZE + rows.length} 표시
         </p>
-        <div className="flex gap-1">
+        <div className="flex gap-1 mr-20">
           <button
             disabled={page === 0}
             onClick={() => setPage((p) => p - 1)}

@@ -1,5 +1,7 @@
 package erp.system.leave.service;
 
+import erp.system.auditlog.entity.AuditLog;
+import erp.system.auditlog.service.AuditLogService;
 import erp.system.leave.dto.LeaveTypeCreateRequest;
 import erp.system.leave.dto.LeaveTypeResponse;
 import erp.system.leave.entity.LeaveType;
@@ -16,6 +18,7 @@ import java.util.List;
 public class LeaveTypeService {
 
     private final LeaveTypeRepository leaveTypeRepository;
+    private final AuditLogService auditLogService;
 
     public List<LeaveTypeResponse> getAll() {
         return leaveTypeRepository.findAll().stream()
@@ -24,7 +27,7 @@ public class LeaveTypeService {
     }
 
     @Transactional
-    public LeaveTypeResponse create(LeaveTypeCreateRequest request) {
+    public LeaveTypeResponse create(LeaveTypeCreateRequest request, Long actorId) {
         LeaveType leaveType = LeaveType.builder()
                 .leaveTypeName(request.leaveTypeName())
                 .paidYn(request.paidYn())
@@ -32,6 +35,8 @@ public class LeaveTypeService {
                 .note(request.note())
                 .build();
 
-        return LeaveTypeResponse.from(leaveTypeRepository.save(leaveType));
+        LeaveType saved = leaveTypeRepository.save(leaveType);
+        auditLogService.log(actorId, AuditLog.ACTION_LEAVE_TYPE_CREATE, "휴가유형 등록: " + saved.getLeaveTypeName(), null);
+        return LeaveTypeResponse.from(saved);
     }
 }

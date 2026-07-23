@@ -1,5 +1,7 @@
 package erp.system.leave.service;
 
+import erp.system.auditlog.entity.AuditLog;
+import erp.system.auditlog.service.AuditLogService;
 import erp.system.common.exception.BusinessException;
 import erp.system.common.exception.ErrorCode;
 import erp.system.leave.dto.LeavePolicyCreateRequest;
@@ -21,6 +23,7 @@ public class LeavePolicyService {
 
     private final LeavePolicyRepository leavePolicyRepository;
     private final PositionRepository positionRepository;
+    private final AuditLogService auditLogService;
 
     public List<LeavePolicyResponse> getAll() {
         return leavePolicyRepository.findAll().stream()
@@ -29,7 +32,7 @@ public class LeavePolicyService {
     }
 
     @Transactional
-    public LeavePolicyResponse create(LeavePolicyCreateRequest request) {
+    public LeavePolicyResponse create(LeavePolicyCreateRequest request, Long actorId) {
         Position position = positionRepository.findById(request.positionId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.POSITION_NOT_FOUND));
 
@@ -41,14 +44,37 @@ public class LeavePolicyService {
                 .note(request.note())
                 .build();
 
-        return LeavePolicyResponse.from(leavePolicyRepository.save(leavePolicy));
+        LeavePolicy saved = leavePolicyRepository.save(leavePolicy);
+        auditLogService.log(
+                actorId,
+                AuditLog.ACTION_LEAVE_POLICY_CREATE,
+                "휴가정책 등록: " + position.getPositionName() + " (연차 " + request.annualLeaveDays() + "일)",
+                null
+        );
+        return LeavePolicyResponse.from(saved);
     }
 
     @Transactional
-    public void delete(Long leavePolicyId) {
-        if (!leavePolicyRepository.existsById(leavePolicyId)) {
-            throw new BusinessException(ErrorCode.LEAVE_POLICY_NOT_FOUND);
-        }
+    public LeavePolicyResponse update(Long leavePolicyId, LeavePolicyCreateRequest request) {
+        LeavePolicy leavePolicy = leavePolicyRepository.findById(leavePolicyId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.LEAVE_POLICY_NOT_FOUND));
+
+        leavePolicy.update(
+                request.annualLeaveDays(),
+                request.maxCarryOverDays(),
+                request.halfDayAllowed(),
+                request.note()
+        );
+
+        return LeavePolicyResponse.from(leavePolicy);
+    }
+
+    @Transactional
+    public void delete(Long leavePolicyId, Long actorId) {
+        LeavePolicy leavePolicy = leavePolicyRepository.findById(leavePolicyId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.LEAVE_POLICY_NOT_FOUND));
+        String description = "휴가정책 삭제: " + leavePolicy.getPosition().getPositionName();
         leavePolicyRepository.deleteById(leavePolicyId);
+        auditLogService.log(actorId, AuditLog.ACTION_LEAVE_POLICY_DELETE, description, null);
     }
 }

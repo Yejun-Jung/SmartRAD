@@ -47,9 +47,24 @@ public class NotificationService {
     }
 
     @Transactional
+    public void deleteNotification(Long notificationId, Long employeeId) {
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOTIFICATION_NOT_FOUND));
+        if (!notification.getRecipient().getEmployeeId().equals(employeeId)) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
+        notificationRepository.delete(notification);
+    }
+
+    @Transactional
     public void notify(Long recipientId, String type, String title, String content, String linkUrl) {
         Employee recipient = employeeRepository.findById(recipientId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.EMPLOYEE_NOT_FOUND));
+        notify(recipient, type, title, content, linkUrl);
+    }
+
+    @Transactional
+    public void notify(Employee recipient, String type, String title, String content, String linkUrl) {
         notificationRepository.save(Notification.builder()
                 .recipient(recipient)
                 .type(type)
@@ -64,6 +79,19 @@ public class NotificationService {
         employeeRepository.findAllByRoleCode(Employee.ROLE_ADMIN).forEach(admin ->
                 notificationRepository.save(Notification.builder()
                         .recipient(admin)
+                        .type(type)
+                        .title(title)
+                        .content(content)
+                        .linkUrl(linkUrl)
+                        .build())
+        );
+    }
+
+    @Transactional
+    public void notifyDepartmentMembers(Long departmentId, String type, String title, String content, String linkUrl) {
+        employeeRepository.findAllByDepartment_DepartmentId(departmentId).forEach(recipient ->
+                notificationRepository.save(Notification.builder()
+                        .recipient(recipient)
                         .type(type)
                         .title(title)
                         .content(content)

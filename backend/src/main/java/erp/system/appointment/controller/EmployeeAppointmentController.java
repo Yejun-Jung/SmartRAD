@@ -45,13 +45,14 @@ public class EmployeeAppointmentController {
     }
 
     @PostMapping
-    public ResponseEntity<EmployeeAppointmentResponse> create(@Valid @RequestBody EmployeeAppointmentCreateRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(employeeAppointmentService.create(request));
+    public ResponseEntity<EmployeeAppointmentResponse> create(@Valid @RequestBody EmployeeAppointmentCreateRequest request,
+                                                               @AuthenticationPrincipal Long requesterId) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(employeeAppointmentService.create(request, requesterId));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        employeeAppointmentService.delete(id);
+    public ResponseEntity<Void> delete(@PathVariable Long id, @AuthenticationPrincipal Long requesterId) {
+        employeeAppointmentService.delete(id, requesterId);
         return ResponseEntity.noContent().build();
     }
 }

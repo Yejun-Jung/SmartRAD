@@ -4,8 +4,11 @@ import erp.system.appointment.dto.EmployeeAppointmentCreateRequest;
 import erp.system.appointment.dto.EmployeeAppointmentResponse;
 import erp.system.appointment.entity.EmployeeAppointment;
 import erp.system.appointment.repository.EmployeeAppointmentRepository;
+import erp.system.auditlog.entity.AuditLog;
+import erp.system.auditlog.service.AuditLogService;
 import erp.system.common.exception.BusinessException;
 import erp.system.common.exception.ErrorCode;
+import erp.system.common.util.SoftDeleteAware;
 import erp.system.department.entity.Department;
 import erp.system.department.repository.DepartmentRepository;
 import erp.system.employee.entity.Employee;
@@ -36,6 +39,7 @@ public class EmployeeAppointmentService {
     private final DepartmentRepository departmentRepository;
     private final PositionRepository positionRepository;
     private final NotificationService notificationService;
+    private final AuditLogService auditLogService;
 
     private static String appointmentTypeLabel(String appointmentType) {
         return switch (appointmentType) {
@@ -79,7 +83,7 @@ public class EmployeeAppointmentService {
     }
 
     @Transactional
-    public EmployeeAppointmentResponse create(EmployeeAppointmentCreateRequest request) {
+    public EmployeeAppointmentResponse create(EmployeeAppointmentCreateRequest request, Long actorId) {
         Employee employee = employeeRepository.findById(request.employeeId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.EMPLOYEE_NOT_FOUND));
 
@@ -131,13 +135,24 @@ public class EmployeeAppointmentService {
                 "/profile"
         );
 
+        auditLogService.log(
+                actorId,
+                AuditLog.ACTION_APPOINTMENT_CREATE,
+                "인사 발령 등록: " + employee.getName() + " (" + appointmentTypeLabel(request.appointmentType()) + ")",
+                null
+        );
+
         return EmployeeAppointmentResponse.from(appointment);
     }
 
     @Transactional
-    public void delete(Long id) {
+    public void delete(Long id, Long actorId) {
         EmployeeAppointment appointment = employeeAppointmentRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.APPOINTMENT_NOT_FOUND));
+        Employee employee = SoftDeleteAware.resolve(appointment.getEmployee(), Employee::getName);
+        String description = "인사 발령 삭제: " + (employee != null ? employee.getName() : "알 수 없음")
+                + " (" + appointmentTypeLabel(appointment.getAppointmentType()) + ")";
         appointment.markDeleted();
+        auditLogService.log(actorId, AuditLog.ACTION_APPOINTMENT_DELETE, description, null);
     }
 }

@@ -1,5 +1,7 @@
 package erp.system.leave.service;
 
+import erp.system.auditlog.entity.AuditLog;
+import erp.system.auditlog.service.AuditLogService;
 import erp.system.common.exception.BusinessException;
 import erp.system.common.exception.ErrorCode;
 import erp.system.employee.entity.Employee;
@@ -42,6 +44,7 @@ public class LeaveRequestService {
     private final LeaveTypeRepository leaveTypeRepository;
     private final EmployeeLeaveBalanceRepository employeeLeaveBalanceRepository;
     private final NotificationService notificationService;
+    private final AuditLogService auditLogService;
 
     public List<LeaveRequestResponse> getMyRequests(Long employeeId) {
         return leaveRequestRepository.findAllByEmployee_EmployeeIdOrderByCreatedAtDesc(employeeId).stream()
@@ -71,8 +74,20 @@ public class LeaveRequestService {
         if (!request.getEmployee().getEmployeeId().equals(employeeId)) {
             throw new BusinessException(ErrorCode.ACCESS_DENIED);
         }
+        if (LeaveRequest.STATUS_APPROVED.equals(request.getStatus())) {
+            EmployeeLeaveBalance balance = findBalance(employeeId, request.getLeaveType().getLeaveTypeId());
+            balance.restore(request.getLeaveDays());
+        }
         request.cancel();
         return LeaveRequestResponse.from(request);
+    }
+
+    @Transactional
+    public int cancelAllPendingForEmployee(Long employeeId) {
+        List<LeaveRequest> pendingRequests = leaveRequestRepository
+                .findAllByEmployee_EmployeeIdAndStatus(employeeId, LeaveRequest.STATUS_PENDING);
+        pendingRequests.forEach(LeaveRequest::cancel);
+        return pendingRequests.size();
     }
 
     public List<LeaveRequestResponse> getList(Long employeeId, String status) {
@@ -109,8 +124,16 @@ public class LeaveRequestService {
     }
 
     @Transactional
-    public LeaveRequestResponse create(LeaveRequestCreateRequest request) {
-        return createForEmployee(request.employeeId(), request.leaveTypeId(), request.startDate(), request.endDate(), request.reason());
+    public LeaveRequestResponse create(LeaveRequestCreateRequest request, Long actorId) {
+        LeaveRequestResponse response = createForEmployee(
+                request.employeeId(), request.leaveTypeId(), request.startDate(), request.endDate(), request.reason());
+        auditLogService.log(
+                actorId,
+                AuditLog.ACTION_LEAVE_REQUEST_CREATE,
+                "휴가 신청 등록: " + response.employeeName() + " (" + response.startDate() + " ~ " + response.endDate() + ")",
+                null
+        );
+        return response;
     }
 
     private LeaveRequestResponse createForEmployee(Long employeeId, Long leaveTypeId, LocalDate startDate,
@@ -168,6 +191,14 @@ public class LeaveRequestService {
                 "/leave/my"
         );
 
+        auditLogService.log(
+                approverId,
+                AuditLog.ACTION_LEAVE_REQUEST_APPROVE,
+                "휴가 승인: " + leaveRequest.getEmployee().getName()
+                        + " (" + leaveRequest.getStartDate() + " ~ " + leaveRequest.getEndDate() + ")",
+                null
+        );
+
         return LeaveRequestResponse.from(leaveRequest);
     }
 
@@ -185,6 +216,14 @@ public class LeaveRequestService {
                 "휴가 반려",
                 "신청하신 휴가가 반려되었습니다." + (rejectionReason != null && !rejectionReason.isBlank() ? " 사유: " + rejectionReason : ""),
                 "/leave/my"
+        );
+
+        auditLogService.log(
+                approverId,
+                AuditLog.ACTION_LEAVE_REQUEST_REJECT,
+                "휴가 반려: " + leaveRequest.getEmployee().getName()
+                        + " (" + leaveRequest.getStartDate() + " ~ " + leaveRequest.getEndDate() + ")",
+                rejectionReason
         );
 
         return LeaveRequestResponse.from(leaveRequest);

@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { UserIcon, PencilSquareIcon, TrashIcon, ClockIcon, CurrencyDollarIcon, DocumentTextIcon, BuildingOfficeIcon, BriefcaseIcon, IdentificationIcon } from "@heroicons/react/24/outline";
+import { useRouter } from "next/navigation";
+import { UserIcon, PencilSquareIcon, TrashIcon, ClockIcon, CurrencyDollarIcon, BuildingOfficeIcon, BriefcaseIcon, IdentificationIcon } from "@heroicons/react/24/outline";
 import { getEmployeeStatusLabel, getEmployeeStatusBadgeClasses } from "@/lib/employeeStatus";
+import { EMPLOYEE_DOCUMENT_TYPE_OPTIONS } from "@/components/employee/documentTypes";
+import { resolveFileUrl } from "@/lib/fileUrl";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081/api";
 
@@ -36,6 +39,14 @@ interface LeaveBalance {
   remainDays: number;
 }
 
+type EmployeeDocument = {
+  employeeDocumentId: number;
+  documentType: string;
+  attachmentUrl: string;
+  attachmentName: string;
+  createdAt: string;
+};
+
 function formatTenure(hireDate: string | null) {
   if (!hireDate) return "-";
   const hire = new Date(hireDate);
@@ -59,17 +70,22 @@ function formatDays(days: number) {
 }
 
 export default function EmployeeDetail({ employeeId, onEditClick, onDeleteClick, refreshKey, role }: { employeeId: number | null, onEditClick?: (data: EmployeeDetailData) => void, onDeleteClick?: (id: number) => void, refreshKey?: number, role?: string | null }) {
+  const router = useRouter();
   const [data, setData] = useState<EmployeeDetailData | null>(null);
   const [annualLeaveDays, setAnnualLeaveDays] = useState<number | null>(null);
+  const [documents, setDocuments] = useState<EmployeeDocument[]>([]);
+  const [uploadingType, setUploadingType] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (employeeId) {
       fetchDetail();
       fetchLeaveBalance();
+      fetchDocuments();
     } else {
       setData(null);
       setAnnualLeaveDays(null);
+      setDocuments([]);
     }
   }, [employeeId, refreshKey]);
 
@@ -101,6 +117,58 @@ export default function EmployeeDetail({ employeeId, onEditClick, onDeleteClick,
       }
     } catch (error) {
       console.error("Failed to fetch leave balance", error);
+    }
+  };
+
+  const fetchDocuments = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/employees/${employeeId}/documents`, { headers: authHeaders() });
+      if (res.ok) {
+        setDocuments(await res.json());
+      }
+    } catch (error) {
+      console.error("Failed to fetch employee documents", error);
+    }
+  };
+
+  const handleDocumentUpload = async (documentType: string, file: File) => {
+    setUploadingType(documentType);
+    try {
+      const formData = new FormData();
+      formData.append("documentType", documentType);
+      formData.append("file", file);
+      const res = await fetch(`${API_BASE_URL}/employees/${employeeId}/documents`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: formData,
+      });
+      if (res.ok) {
+        await fetchDocuments();
+      } else {
+        alert("서류 업로드에 실패했습니다.");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("서류 업로드 중 오류가 발생했습니다.");
+    } finally {
+      setUploadingType(null);
+    }
+  };
+
+  const handleDocumentDelete = async (documentId: number) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/employees/${employeeId}/documents/${documentId}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
+      if (res.ok) {
+        setDocuments((current) => current.filter((document) => document.employeeDocumentId !== documentId));
+      } else {
+        alert("서류 삭제에 실패했습니다.");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("서류 삭제 중 오류가 발생했습니다.");
     }
   };
 
@@ -152,7 +220,7 @@ export default function EmployeeDetail({ employeeId, onEditClick, onDeleteClick,
           <div className="flex items-center gap-5">
             {data.profileImage ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={data.profileImage} alt={`${data.name} 프로필 사진`} className="w-20 h-20 rounded-full object-cover shadow-md" />
+              <img src={resolveFileUrl(data.profileImage)} alt={`${data.name} 프로필 사진`} className="w-20 h-20 rounded-full object-cover shadow-md" />
             ) : (
               <div className="w-20 h-20 bg-blue-500 text-white rounded-full flex items-center justify-center text-3xl font-bold shadow-md">
                 {data.name ? data.name.charAt(0) : '?'}
@@ -238,22 +306,85 @@ export default function EmployeeDetail({ employeeId, onEditClick, onDeleteClick,
           </div>
         </div>
 
+        {/* Documents */}
+        <div className="border border-gray-100 rounded-lg overflow-hidden mb-8">
+          <div className="bg-gray-50 px-4 py-3 border-b border-gray-100">
+            <h4 className="text-sm font-bold text-gray-900 text-center">첨부 서류</h4>
+          </div>
+          <div className="p-4 space-y-2">
+            {EMPLOYEE_DOCUMENT_TYPE_OPTIONS.map((docType) => {
+              const document = documents.find((doc) => doc.documentType === docType.value);
+              const uploading = uploadingType === docType.value;
+              return (
+                <div key={docType.value} className="flex items-center justify-between gap-3 rounded-lg border border-gray-100 bg-white p-3 shadow-sm">
+                  <div className="min-w-0 flex-1 flex items-center gap-4">
+                    <p className="text-sm font-bold text-gray-700 w-32 shrink-0">
+                      {docType.label} {docType.required ? <b className="text-rose-500">*</b> : null}
+                    </p>
+                    {document ? (
+                      <a
+                        href={resolveFileUrl(document.attachmentUrl)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="truncate text-sm font-semibold text-blue-600 hover:underline"
+                      >
+                        {document.attachmentName}
+                      </a>
+                    ) : (
+                      <p className="text-sm text-gray-400 font-medium">미제출</p>
+                    )}
+                  </div>
+                  {role === "ADMIN" && (
+                    <div className="flex shrink-0 items-center gap-2">
+                      <label className="cursor-pointer rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-50 shadow-sm transition-colors">
+                        {uploading ? "업로드 중..." : document ? "재업로드" : "파일 선택"}
+                        <input
+                          type="file"
+                          disabled={uploading}
+                          className="hidden"
+                          onChange={(event) => {
+                            const file = event.target.files?.[0];
+                            event.target.value = "";
+                            if (file) void handleDocumentUpload(docType.value, file);
+                          }}
+                        />
+                      </label>
+                      {document && (
+                        <button
+                          type="button"
+                          onClick={() => handleDocumentDelete(document.employeeDocumentId)}
+                          className="flex items-center justify-center rounded-md border border-gray-300 bg-white p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition-colors shadow-sm"
+                          aria-label={`${docType.label} 삭제`}
+                        >
+                          <TrashIcon className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Quick Links */}
         {role === "ADMIN" && (
           <div>
             <h4 className="text-xs font-bold text-gray-400 mb-3">관련 페이지로 이동</h4>
-            <div className="grid grid-cols-3 gap-3">
-              <button className="flex items-center justify-center gap-2 py-3 rounded-lg border border-blue-200 bg-blue-50/50 text-blue-700 font-bold hover:bg-blue-50 transition-colors text-sm">
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => router.push(`/attendance/daily?keyword=${encodeURIComponent(data.name)}`)}
+                className="flex items-center justify-center gap-2 py-3 rounded-lg border border-blue-200 bg-blue-50/50 text-blue-700 font-bold hover:bg-blue-50 transition-colors text-sm"
+              >
                 <ClockIcon className="w-5 h-5" />
                 근태 현황 보기 &gt;
               </button>
-              <button className="flex items-center justify-center gap-2 py-3 rounded-lg border border-emerald-200 bg-emerald-50/50 text-emerald-700 font-bold hover:bg-emerald-50 transition-colors text-sm">
+              <button
+                onClick={() => router.push(`/payroll/basic?keyword=${encodeURIComponent(data.name)}`)}
+                className="flex items-center justify-center gap-2 py-3 rounded-lg border border-emerald-200 bg-emerald-50/50 text-emerald-700 font-bold hover:bg-emerald-50 transition-colors text-sm"
+              >
                 <CurrencyDollarIcon className="w-5 h-5" />
                 급여 정보 보기 &gt;
-              </button>
-              <button className="flex items-center justify-center gap-2 py-3 rounded-lg border border-orange-200 bg-orange-50/50 text-orange-700 font-bold hover:bg-orange-50 transition-colors text-sm">
-                <DocumentTextIcon className="w-5 h-5" />
-                증명서 발급 &gt;
               </button>
             </div>
           </div>

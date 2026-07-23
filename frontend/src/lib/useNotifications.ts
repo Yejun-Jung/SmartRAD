@@ -88,5 +88,16 @@ export function useNotifications() {
     }
   }, []);
 
-  return { notifications, unreadCount, loading, fetchNotifications, ensureLoaded, markAsRead, markAllAsRead };
+  const deleteNotification = useCallback(async (notificationId: number) => {
+    const target = notifications.find((item) => item.notificationId === notificationId);
+    setNotifications((items) => items.filter((item) => item.notificationId !== notificationId));
+    if (target && !target.read) setUnreadCount((count) => Math.max(0, count - 1));
+    try {
+      await fetch(`${API_BASE_URL}/notifications/${notificationId}`, { method: "DELETE", headers: authHeaders() });
+    } catch {
+      /* ignore */
+    }
+  }, [notifications]);
+
+  return { notifications, unreadCount, loading, fetchNotifications, ensureLoaded, markAsRead, markAllAsRead, deleteNotification };
 }

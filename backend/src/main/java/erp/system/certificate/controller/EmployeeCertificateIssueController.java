@@ -53,22 +53,24 @@ public class EmployeeCertificateIssueController {
     }
 
     @PostMapping
-    public ResponseEntity<EmployeeCertificateIssueResponse> create(@Valid @RequestBody EmployeeCertificateIssueCreateRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(certificateIssueService.create(request));
+    public ResponseEntity<EmployeeCertificateIssueResponse> create(@Valid @RequestBody EmployeeCertificateIssueCreateRequest request,
+                                                                    @AuthenticationPrincipal Long requesterId) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(certificateIssueService.create(request, requesterId));
     }
 
     @PatchMapping("/{id}/approve")
-    public EmployeeCertificateIssueResponse approve(@PathVariable Long id) {
-        return certificateIssueService.approve(id);
+    public EmployeeCertificateIssueResponse approve(@PathVariable Long id, @AuthenticationPrincipal Long requesterId) {
+        return certificateIssueService.approve(id, requesterId);
     }
 
     @PatchMapping("/{id}/reject")
-    public EmployeeCertificateIssueResponse reject(@PathVariable Long id, @Valid @RequestBody EmployeeCertificateIssueRejectRequest request) {
-        return certificateIssueService.reject(id, request.memo());
+    public EmployeeCertificateIssueResponse reject(@PathVariable Long id, @Valid @RequestBody EmployeeCertificateIssueRejectRequest request,
+                                                    @AuthenticationPrincipal Long requesterId) {
+        return certificateIssueService.reject(id, request.memo(), requesterId);
     }
 
     @PatchMapping("/{id}/issue")
-    public EmployeeCertificateIssueResponse issue(@PathVariable Long id) {
-        return certificateIssueService.issue(id);
+    public EmployeeCertificateIssueResponse issue(@PathVariable Long id, @AuthenticationPrincipal Long requesterId) {
+        return certificateIssueService.issue(id, requesterId);
     }
 }

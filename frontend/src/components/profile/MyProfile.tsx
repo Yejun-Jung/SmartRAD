@@ -1,16 +1,35 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { UserIcon, BuildingOfficeIcon, BriefcaseIcon, IdentificationIcon, EnvelopeIcon, PhoneIcon, ClockIcon, CheckBadgeIcon, PencilSquareIcon, DocumentTextIcon, CurrencyDollarIcon } from "@heroicons/react/24/outline";
+import { useEffect, useRef, useState } from "react";
+import { UserIcon, BuildingOfficeIcon, BriefcaseIcon, IdentificationIcon, EnvelopeIcon, PhoneIcon, HomeIcon, ClockIcon, CheckBadgeIcon, PencilSquareIcon, DocumentTextIcon, CurrencyDollarIcon } from "@heroicons/react/24/outline";
 import { getEmployeeStatusLabel, getEmployeeStatusBadgeClasses } from "@/lib/employeeStatus";
 import { certificateTypeLabel, statusBadge, type CertificateIssueResponse } from "@/components/certificate/types";
 import Modal, { ModalCancelButton, ModalPrimaryButton } from "@/components/common/Modal";
+import { EMPLOYEE_DOCUMENT_TYPE_OPTIONS } from "@/components/employee/documentTypes";
+import { resolveFileUrl } from "@/lib/fileUrl";
+
+declare global {
+  interface Window {
+    daum?: {
+      Postcode: new (options: {
+        oncomplete: (data: { roadAddress: string; jibunAddress: string; zonecode: string }) => void;
+        width?: string | number;
+        height?: string | number;
+      }) => { embed: (element: HTMLElement) => void };
+    };
+  }
+}
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081/api";
 
 function authHeaders(): HeadersInit {
   const token = window.localStorage.getItem("accessToken") ?? window.sessionStorage.getItem("accessToken");
   return token ? { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" } : { "Content-Type": "application/json" };
+}
+
+function authHeadersMultipart(): HeadersInit {
+  const token = window.localStorage.getItem("accessToken") ?? window.sessionStorage.getItem("accessToken");
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 interface EmployeeDetailData {
@@ -37,6 +56,14 @@ interface EmployeeDetailData {
   profileImage: string | null;
   birthDate: string | null;
 }
+
+type EmployeeDocument = {
+  employeeDocumentId: number;
+  documentType: string;
+  attachmentUrl: string;
+  attachmentName: string;
+  createdAt: string;
+};
 
 interface AppointmentResponse {
   appointmentId: number;
@@ -127,7 +154,7 @@ function todayString() {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
 
-type TabType = "appointments" | "certificates" | "payroll";
+type TabType = "appointments" | "certificates" | "payroll" | "documents";
 
 export default function MyProfile() {
   const [profile, setProfile] = useState<EmployeeDetailData | null>(null);
@@ -136,12 +163,23 @@ export default function MyProfile() {
   const [todayAttendance, setTodayAttendance] = useState<Attendance | null>(null);
   const [certificateIssues, setCertificateIssues] = useState<CertificateIssueResponse[]>([]);
   const [payrolls, setPayrolls] = useState<Payroll[]>([]);
+  const [documents, setDocuments] = useState<EmployeeDocument[]>([]);
   const [loading, setLoading] = useState(true);
   
   const [activeTab, setActiveTab] = useState<TabType>("appointments");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editForm, setEditForm] = useState({ phone: "", email: "", address: "" });
+  const [editForm, setEditForm] = useState<{ phone: string; email: string; address: string; addressDetail: string; profileImage: string | null }>({
+    phone: "",
+    email: "",
+    address: "",
+    addressDetail: "",
+    profileImage: null,
+  });
   const [isSaving, setIsSaving] = useState(false);
+  const [addressSearchOpen, setAddressSearchOpen] = useState(false);
+  const addressLayerRef = useRef<HTMLDivElement>(null);
+  const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
+  const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
 
   useEffect(() => {
     const employeeId = window.localStorage.getItem("employeeId") ?? window.sessionStorage.getItem("employeeId");
@@ -155,19 +193,20 @@ export default function MyProfile() {
   const fetchData = async (employeeId: string) => {
     setLoading(true);
     try {
-      const [profileRes, appointmentsRes, leaveRes, attendanceRes, certificatesRes, payrollsRes] = await Promise.all([
+      const [profileRes, appointmentsRes, leaveRes, attendanceRes, certificatesRes, payrollsRes, documentsRes] = await Promise.all([
         fetch(`${API_BASE_URL}/employees/${employeeId}`, { headers: authHeaders() }),
         fetch(`${API_BASE_URL}/appointments/me`, { headers: authHeaders() }),
         fetch(`${API_BASE_URL}/leave-balances?employeeId=${employeeId}`, { headers: authHeaders() }),
         fetch(`${API_BASE_URL}/attendances/me?yearMonth=${currentYearMonthString()}`, { headers: authHeaders() }),
         fetch(`${API_BASE_URL}/certificate-issues/me`, { headers: authHeaders() }),
         fetch(`${API_BASE_URL}/payrolls/me`, { headers: authHeaders() }),
+        fetch(`${API_BASE_URL}/employees/${employeeId}/documents`, { headers: authHeaders() }),
       ]);
 
       if (profileRes.ok) {
         const data = await profileRes.json();
         setProfile(data);
-        setEditForm({ phone: data.phone || "", email: data.email || "", address: data.address || "" });
+        setEditForm({ phone: data.phone || "", email: data.email || "", address: data.address || "", addressDetail: "", profileImage: data.profileImage || null });
       }
       if (appointmentsRes.ok) setAppointments(await appointmentsRes.json());
 
@@ -189,6 +228,10 @@ export default function MyProfile() {
         const result: Payroll[] = await payrollsRes.json();
         setPayrolls([...result].sort((a, b) => b.payrollYearMonth.localeCompare(a.payrollYearMonth)));
       }
+
+      if (documentsRes.ok) {
+        setDocuments(await documentsRes.json());
+      }
     } catch (error) {
       console.error("Failed to fetch my profile data", error);
     } finally {
@@ -196,25 +239,90 @@ export default function MyProfile() {
     }
   };
 
+  useEffect(() => {
+    if (document.getElementById("daum-postcode-script")) return;
+    const script = document.createElement("script");
+    script.id = "daum-postcode-script";
+    script.src = "https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js";
+    script.async = true;
+    document.body.appendChild(script);
+  }, []);
+
+  useEffect(() => {
+    if (!addressSearchOpen || !addressLayerRef.current || !window.daum?.Postcode) return;
+    addressLayerRef.current.innerHTML = "";
+    new window.daum.Postcode({
+      oncomplete: (data) => {
+        setEditForm((prev) => ({ ...prev, address: data.roadAddress || data.jibunAddress }));
+        setAddressSearchOpen(false);
+        document.getElementById("addressDetail")?.focus();
+      },
+      width: "100%",
+      height: "100%",
+    }).embed(addressLayerRef.current);
+  }, [addressSearchOpen]);
+
+  const openAddressSearch = () => {
+    if (!window.daum?.Postcode) {
+      window.alert("주소 검색 서비스를 불러오는 중입니다. 잠시 후 다시 시도해주세요.");
+      return;
+    }
+    setAddressSearchOpen(true);
+  };
+
+  const handleProfileImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setProfileImageFile(file);
+    setProfileImagePreview(URL.createObjectURL(file));
+  };
+
+  const removeProfileImage = () => {
+    setProfileImageFile(null);
+    setProfileImagePreview(null);
+    setEditForm((prev) => ({ ...prev, profileImage: null }));
+  };
+
+  const closeEditModal = () => {
+    setProfileImageFile(null);
+    setProfileImagePreview(null);
+    setIsEditModalOpen(false);
+  };
+
   const handleUpdateInfo = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profile) return;
     setIsSaving(true);
     try {
+      let profileImageUrl = editForm.profileImage;
+      if (profileImageFile) {
+        const uploadFormData = new FormData();
+        uploadFormData.append("file", profileImageFile);
+        const uploadRes = await fetch(`${API_BASE_URL}/employees/profile-image`, {
+          method: "POST",
+          headers: authHeadersMultipart(),
+          body: uploadFormData,
+        });
+        if (!uploadRes.ok) throw new Error("프로필 사진 업로드에 실패했습니다.");
+        profileImageUrl = ((await uploadRes.json()) as { url: string }).url;
+      }
+
       const payload = {
         employmentTypeId: profile.employmentTypeId,
         name: profile.name,
         birthDate: profile.birthDate,
         phone: editForm.phone,
         email: editForm.email,
-        address: editForm.address,
+        address: editForm.address
+          ? `${editForm.address}${editForm.addressDetail ? ` ${editForm.addressDetail}` : ""}`
+          : editForm.address,
         hireDate: profile.hireDate,
         resignationDate: profile.resignationDate,
         employeeStatusCode: profile.employeeStatusCode,
         bankName: profile.bankName,
         accountNumber: profile.accountNumber,
         accountHolder: profile.accountHolder,
-        profileImage: profile.profileImage
+        profileImage: profileImageUrl
       };
 
       const res = await fetch(`${API_BASE_URL}/employees/${profile.employeeId}`, {
@@ -224,7 +332,9 @@ export default function MyProfile() {
       });
 
       if (!res.ok) throw new Error("업데이트 실패");
-      
+
+      setProfileImageFile(null);
+      setProfileImagePreview(null);
       alert("정보가 성공적으로 수정되었습니다.");
       setIsEditModalOpen(false);
       fetchData(profile.employeeId.toString());
@@ -271,7 +381,7 @@ export default function MyProfile() {
             <div className="flex flex-col items-center mb-6 mt-4">
               {profile.profileImage ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={profile.profileImage} alt={`${profile.name} 프로필 사진`} className="w-24 h-24 rounded-full object-cover shadow-md mb-4 border-2 border-white ring-2 ring-blue-100" />
+                <img src={resolveFileUrl(profile.profileImage)} alt={`${profile.name} 프로필 사진`} className="w-24 h-24 rounded-full object-cover shadow-md mb-4 border-2 border-white ring-2 ring-blue-100" />
               ) : (
                 <div className="w-24 h-24 bg-blue-500 text-white rounded-full flex items-center justify-center text-4xl font-bold shadow-md mb-4 border-2 border-white ring-2 ring-blue-100">
                   {profile.name ? profile.name.charAt(0) : '?'}
@@ -323,6 +433,13 @@ export default function MyProfile() {
                 <div>
                   <p className="text-xs text-gray-500 font-medium">연락처</p>
                   <p className="text-sm text-gray-900 mt-0.5">{profile.phone || '-'}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <HomeIcon className="w-5 h-5 text-gray-400 mt-0.5" />
+                <div>
+                  <p className="text-xs text-gray-500 font-medium">자택 주소</p>
+                  <p className="text-sm text-gray-900 mt-0.5">{profile.address || '-'}</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
@@ -399,6 +516,14 @@ export default function MyProfile() {
               >
                 <CurrencyDollarIcon className="w-4 h-4" />
                 급여 내역
+              </button>
+              <button 
+                type="button"
+                onClick={() => setActiveTab("documents")}
+                className={`px-4 py-3 text-sm font-bold border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'documents' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300'}`}
+              >
+                <DocumentTextIcon className="w-4 h-4" />
+                첨부 서류
               </button>
             </div>
             
@@ -485,6 +610,35 @@ export default function MyProfile() {
                   </div>
                 )
               )}
+
+              {activeTab === "documents" && (
+                <div className="space-y-3">
+                  {EMPLOYEE_DOCUMENT_TYPE_OPTIONS.map((docType) => {
+                    const document = documents.find((doc) => doc.documentType === docType.value);
+                    return (
+                      <div key={docType.value} className="flex items-center justify-between gap-3 rounded-lg border border-gray-100 bg-gray-50 p-4">
+                        <div className="min-w-0 flex-1 flex items-center gap-4">
+                          <p className="text-sm font-bold text-gray-900 w-32 shrink-0">
+                            {docType.label} {docType.required ? <b className="text-rose-500">*</b> : null}
+                          </p>
+                          {document ? (
+                            <a
+                              href={resolveFileUrl(document.attachmentUrl)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="truncate text-sm font-semibold text-blue-600 hover:underline"
+                            >
+                              {document.attachmentName}
+                            </a>
+                          ) : (
+                            <p className="text-sm text-gray-400 font-medium">미제출</p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -495,18 +649,46 @@ export default function MyProfile() {
         <Modal
           icon={PencilSquareIcon}
           title="개인 연락처 정보 수정"
-          onClose={() => setIsEditModalOpen(false)}
+          onClose={closeEditModal}
           as="form"
           onSubmit={handleUpdateInfo}
           footer={
             <>
-              <ModalCancelButton onClick={() => setIsEditModalOpen(false)} disabled={isSaving} />
+              <ModalCancelButton onClick={closeEditModal} disabled={isSaving} />
               <ModalPrimaryButton type="submit" disabled={isSaving}>
                 {isSaving ? "저장 중..." : "저장"}
               </ModalPrimaryButton>
             </>
           }
         >
+                <div className="border border-gray-100 rounded-lg overflow-hidden">
+                  <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-100">
+                    <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide">프로필 사진</h3>
+                  </div>
+                  <div className="p-4 flex items-center gap-4">
+                    {profileImagePreview || editForm.profileImage ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={profileImagePreview ?? resolveFileUrl(editForm.profileImage)} alt="프로필 사진" className="w-16 h-16 rounded-full object-cover shadow-sm border border-gray-100" />
+                    ) : (
+                      <div className="w-16 h-16 bg-blue-500 text-white rounded-full flex items-center justify-center text-2xl font-bold shadow-sm">
+                        {profile.name ? profile.name.charAt(0) : "?"}
+                      </div>
+                    )}
+                    <label className="cursor-pointer px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                      사진 변경
+                      <input type="file" accept="image/*" className="hidden" onChange={handleProfileImageChange} />
+                    </label>
+                    {(profileImagePreview || editForm.profileImage) && (
+                      <button
+                        type="button"
+                        onClick={removeProfileImage}
+                        className="px-3 py-1.5 text-sm font-medium text-rose-600 bg-white border border-rose-200 rounded-md hover:bg-rose-50"
+                      >
+                        사진 삭제
+                      </button>
+                    )}
+                  </div>
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">연락처</label>
                   <input 
@@ -529,16 +711,56 @@ export default function MyProfile() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">자택 주소</label>
-                  <input 
-                    type="text" 
-                    value={editForm.address}
-                    onChange={(e) => setEditForm({...editForm, address: e.target.value})}
-                    placeholder="거주지 주소 입력"
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  <div className="flex gap-2">
+                    <div className="flex h-9 flex-1 items-center rounded-md border border-gray-300 bg-gray-50 px-3 text-sm">
+                      <span className={editForm.address ? "text-gray-900" : "text-gray-400"}>
+                        {editForm.address || "주소 검색 버튼을 눌러주세요"}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={openAddressSearch}
+                      className="h-9 shrink-0 rounded-md border border-gray-300 bg-white px-3 text-sm font-medium text-gray-600 hover:border-blue-300 hover:text-blue-600"
+                    >
+                      주소 검색
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    id="addressDetail"
+                    value={editForm.addressDetail}
+                    onChange={(e) => setEditForm({...editForm, addressDetail: e.target.value})}
+                    placeholder="상세주소 (선택)"
+                    className="mt-2 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                 </div>
         </Modal>
       )}
+
+      {addressSearchOpen ? (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40"
+          onClick={() => setAddressSearchOpen(false)}
+        >
+          <div
+            className="flex max-h-[80vh] w-full max-w-md flex-col overflow-hidden rounded-xl bg-white shadow-xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+              <h3 className="text-sm font-bold text-gray-900">주소 검색</h3>
+              <button
+                type="button"
+                onClick={() => setAddressSearchOpen(false)}
+                className="text-gray-400 hover:text-gray-600"
+                aria-label="주소 검색 닫기"
+              >
+                ×
+              </button>
+            </div>
+            <div ref={addressLayerRef} className="h-[450px] w-full" />
+          </div>
+        </div>
+      ) : null}
     </>
   );
 }
