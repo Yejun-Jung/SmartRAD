@@ -3,8 +3,8 @@ spring:
     name: system
   datasource:
     url: jdbc:mysql://mysql:3306/tp_hr?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&useUnicode=true
-    username: tp_hr_user
-    password: tp_hr_password
+    username: ${DB_USERNAME:tp_hr_user}
+    password: ${DB_PASSWORD:tp_hr_password}
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
@@ -37,6 +37,9 @@ aws:
 jwt:
   secret: ${JWT_SECRET:dev-only-please-override-this-secret-key-in-production-0123456789}
   access-token-validity-seconds: 3600
+
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
 
 assistant:
   provider: ${ASSISTANT_PROVIDER:gemini}
