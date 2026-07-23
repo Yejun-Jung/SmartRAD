@@ -19,18 +19,18 @@ export default function AttendanceStats({ counts }: { counts: AttendanceCounts }
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 xl:gap-4">
       {cards.map((card) => {
         const Icon = card.icon;
         return (
-          <div key={card.label} className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div key={card.label} className="flex min-w-0 items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:gap-4 sm:p-5">
             <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${card.bg} ${card.color}`}>
               <Icon className="h-6 w-6" />
             </div>
             <div className="min-w-0">
               <p className="text-sm font-medium text-gray-500">{card.label}</p>
               <div className="mt-1 flex items-baseline gap-2">
-                <p className="text-2xl font-bold text-gray-900">{card.value}<span className="ml-0.5 text-base">명</span></p>
+                <p className="whitespace-nowrap text-xl font-bold text-gray-900 sm:text-2xl">{card.value}<span className="ml-0.5 text-base">명</span></p>
                 {card.ratio && <span className={`text-xs font-semibold ${card.color}`}>{card.ratio}</span>}
               </div>
             </div>

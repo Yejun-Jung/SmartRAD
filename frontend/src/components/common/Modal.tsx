@@ -57,14 +57,14 @@ export default function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 p-3 backdrop-blur-sm sm:p-4"
       role="dialog"
       aria-modal="true"
     >
       <div
-        className={`w-full ${MAX_WIDTH_CLASSES[maxWidth]} animate-in fade-in zoom-in-95 overflow-hidden rounded-2xl bg-white shadow-xl duration-200`}
+        className={`flex max-h-[calc(100dvh-1.5rem)] w-full flex-col ${MAX_WIDTH_CLASSES[maxWidth]} animate-in fade-in zoom-in-95 overflow-hidden rounded-2xl bg-white shadow-xl duration-200 sm:max-h-[calc(100dvh-2rem)]`}
       >
-        <div className="flex items-center justify-between gap-3 border-b border-gray-100 bg-gray-50/50 px-6 py-4">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-gray-100 bg-gray-50/50 px-4 py-3 sm:px-6 sm:py-4">
           <div className="flex min-w-0 items-center gap-3">
             {Icon && (
               <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${ICON_COLOR_CLASSES[iconColor]}`}>
@@ -86,9 +86,9 @@ export default function Modal({
           </button>
         </div>
 
-        <Body {...bodyProps}>
-          <div className={bodyClassName ?? "max-h-[65vh] space-y-4 overflow-y-auto p-6"}>{children}</div>
-          {footer && <div className="flex justify-end gap-3 border-t border-gray-100 bg-gray-50/30 px-6 py-4">{footer}</div>}
+        <Body {...bodyProps} className="flex min-h-0 flex-1 flex-col">
+          <div className={bodyClassName ?? "min-h-0 flex-1 space-y-4 overflow-y-auto p-4 sm:p-6"}>{children}</div>
+          {footer && <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-gray-100 bg-gray-50/30 px-4 py-3 sm:flex-row sm:justify-end sm:gap-3 sm:px-6 sm:py-4">{footer}</div>}
         </Body>
       </div>
     </div>
@@ -100,7 +100,7 @@ export function ModalCancelButton({ children = "취소", className = "", ...prop
     <button
       type="button"
       {...props}
-      className={`flex-1 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+      className={`w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:flex-1 ${className}`}
     >
       {children}
     </button>
@@ -122,7 +122,7 @@ export function ModalPrimaryButton({
   return (
     <button
       {...props}
-      className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${PRIMARY_BUTTON_TONES[tone]} ${className}`}
+      className={`w-full rounded-xl px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:flex-1 ${PRIMARY_BUTTON_TONES[tone]} ${className}`}
     >
       {children}
     </button>

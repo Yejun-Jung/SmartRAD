@@ -91,7 +91,7 @@ export default function AttendanceReasonModal({
               rows={4}
               maxLength={500}
               placeholder="사유를 입력해주세요."
-              className="mt-1 block w-full resize-none rounded-md border border-gray-200 p-3 text-sm outline-none focus:border-blue-500"
+              className="mt-1 block min-w-0 w-full resize-none rounded-md border border-gray-200 p-3 text-sm outline-none focus:border-blue-500"
             />
           </label>
           <label className="block text-sm font-medium text-gray-700">
@@ -99,13 +99,13 @@ export default function AttendanceReasonModal({
             <input
               type="file"
               onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-              className="mt-1 block w-full text-sm text-gray-600 file:mr-3 file:rounded-md file:border file:border-gray-200 file:bg-gray-50 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-gray-600 hover:file:bg-gray-100"
+              className="mt-1 block min-w-0 w-full text-sm text-gray-600 file:mr-3 file:rounded-md file:border file:border-gray-200 file:bg-gray-50 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-gray-600 hover:file:bg-gray-100"
             />
             {!file && initialAttachmentName && (
               <p className="mt-1 text-xs text-gray-400">
                 등록된 파일:{" "}
                 {initialAttachmentUrl ? (
-                  <a href={`${FILE_ORIGIN}${initialAttachmentUrl}`} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
+                  <a href={`${FILE_ORIGIN}${initialAttachmentUrl}`} target="_blank" rel="noreferrer" className="break-words text-blue-600 hover:underline">
                     {initialAttachmentName}
                   </a>
                 ) : (
