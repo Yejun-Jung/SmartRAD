@@ -149,9 +149,9 @@ export default function LeavePoliciesPage() {
   };
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
+    <div className="min-w-0 space-y-4 overflow-x-clip p-3 sm:space-y-6 sm:p-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-extrabold text-slate-900">휴가정책 관리</h1>
           <p className="mt-1 text-sm text-slate-500">직책별 연차 발생일수와 이월 한도를 관리합니다.</p>
         </div>
@@ -159,7 +159,7 @@ export default function LeavePoliciesPage() {
           type="button"
           onClick={() => openModal()}
           disabled={availablePositions.length === 0}
-          className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
         >
           <PlusIcon className="h-4 w-4" />
           새 정책 등록
@@ -171,7 +171,7 @@ export default function LeavePoliciesPage() {
       )}
 
       <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-        <table className="w-full text-left text-sm">
+        <table className="hidden w-full text-left text-sm md:table">
           <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
             <tr>
               <th className="px-4 py-3">직책</th>
@@ -222,6 +222,26 @@ export default function LeavePoliciesPage() {
             )}
           </tbody>
         </table>
+        <div className="divide-y divide-slate-100 md:hidden">
+          {loading ? (
+            <p className="px-4 py-8 text-center text-sm text-slate-400">불러오는 중...</p>
+          ) : policies.length === 0 ? (
+            <p className="px-4 py-8 text-center text-sm text-slate-400">등록된 휴가정책이 없습니다.</p>
+          ) : policies.map((policy) => (
+            <article key={policy.leavePolicyId} className="space-y-3 p-4">
+              <div className="flex min-w-0 items-start justify-between gap-3">
+                <h2 className="min-w-0 break-words font-semibold text-slate-800">{policy.positionName ?? "(삭제된 직책)"}</h2>
+                <button type="button" onClick={() => deletePolicy(policy)} className="shrink-0 rounded-md border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50">삭제</button>
+              </div>
+              <dl className="grid grid-cols-2 gap-3 text-sm">
+                <div><dt className="text-xs text-slate-400">연차 발생일수</dt><dd className="mt-1 font-medium text-slate-700">{policy.annualLeaveDays ?? "-"}일</dd></div>
+                <div><dt className="text-xs text-slate-400">이월 한도</dt><dd className="mt-1 font-medium text-slate-700">{policy.maxCarryOverDays ?? "-"}일</dd></div>
+                <div><dt className="text-xs text-slate-400">반차 허용</dt><dd className="mt-1 font-medium text-slate-700">{policy.halfDayAllowed ? "가능" : "불가"}</dd></div>
+                <div className="col-span-2"><dt className="text-xs text-slate-400">비고</dt><dd className="mt-1 break-words text-slate-600">{policy.note ?? "-"}</dd></div>
+              </dl>
+            </article>
+          ))}
+        </div>
       </section>
 
       {showModal && (

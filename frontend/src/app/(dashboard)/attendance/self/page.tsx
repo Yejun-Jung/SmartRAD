@@ -277,18 +277,18 @@ export default function SelfAttendancePage() {
   ];
 
   return (
-    <div className="mx-auto max-w-[1600px] space-y-5">
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="오늘 근무 요약">
+    <div className="mx-auto min-w-0 max-w-[1600px] space-y-4 overflow-x-clip sm:space-y-5">
+      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:gap-4" aria-label="오늘 근무 요약">
         {summaryCards.map((card) => {
           const Icon = card.icon;
           return (
-            <div key={card.label} className="flex min-h-32 items-center gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div key={card.label} className="flex min-w-0 items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:min-h-32 sm:gap-4 sm:p-5">
               <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${card.color}`}>
                 <Icon className="h-6 w-6" />
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-medium text-gray-500">{card.label}</p>
-                <p className="mt-1 break-keep text-lg font-bold leading-snug text-gray-900">{card.value}</p>
+                <p className="mt-1 break-words text-lg font-bold leading-snug text-gray-900">{card.value}</p>
                 <p className="mt-1 text-xs text-gray-400">{card.description}</p>
               </div>
             </div>
@@ -302,9 +302,9 @@ export default function SelfAttendancePage() {
         ) : (
           <>
             <div className="grid lg:grid-cols-[1.2fr_1fr]">
-              <div className="flex flex-col justify-center border-b border-gray-200 p-6 sm:p-8 lg:border-b-0 lg:border-r">
-                <p className="text-sm font-medium text-gray-500">{formatKoreanDate(now)}</p>
-                <p className="mt-3 font-mono text-4xl font-extrabold tracking-wide text-gray-900 sm:text-5xl" aria-live="polite">
+              <div className="flex min-w-0 flex-col justify-center border-b border-gray-200 p-4 sm:p-8 lg:border-b-0 lg:border-r">
+                <p className="break-keep text-sm font-medium text-gray-500">{formatKoreanDate(now)}</p>
+                <p className="mt-3 whitespace-nowrap font-mono text-3xl font-extrabold tracking-wide text-gray-900 sm:text-4xl lg:text-5xl" aria-live="polite">
                   {formatClock(now)}
                 </p>
                 <span className={`mt-5 w-fit rounded-full px-3 py-1 text-xs font-bold ring-1 ${STATUS_STYLES[displayStatus]}`}>
@@ -323,7 +323,7 @@ export default function SelfAttendancePage() {
                     type="button"
                     onClick={handleCheckIn}
                     disabled={processing || checkedIn}
-                    className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#4A5DDF] px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="flex w-full flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-[#4A5DDF] px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     <ArrowRightOnRectangleIcon className="h-4 w-4" />
                     {checkedIn ? "출근 완료" : processing ? "처리 중..." : "출근하기"}
@@ -332,7 +332,7 @@ export default function SelfAttendancePage() {
                     type="button"
                     onClick={handleCheckOut}
                     disabled={processing || !checkedIn || checkedOut}
-                    className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-slate-800 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-900 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="flex w-full flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-slate-800 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-900 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     <ArrowLeftOnRectangleIcon className="h-4 w-4" />
                     {checkedOut ? "퇴근 완료" : processing ? "처리 중..." : "퇴근하기"}
@@ -340,7 +340,7 @@ export default function SelfAttendancePage() {
                 </div>
               </div>
 
-              <div className="p-6 sm:p-8">
+              <div className="min-w-0 p-4 sm:p-8">
                 <h2 className="text-base font-bold text-gray-900">오늘 출퇴근 기록</h2>
                 <dl className="mt-5 divide-y divide-gray-100 rounded-lg border border-gray-200 bg-gray-50/60 px-4">
                   {[
@@ -350,18 +350,18 @@ export default function SelfAttendancePage() {
                     ["진행 상태", checkedOut ? "근무 완료" : checkedIn ? "근무 진행 중" : "출근 대기"],
                     ...(record?.reason ? [["조퇴 사유", record.reason]] : []),
                   ].map(([label, value]) => (
-                    <div key={label} className="flex items-center justify-between gap-4 py-4">
-                      <dt className="text-sm text-gray-500">{label}</dt>
-                      <dd className="text-right text-sm font-semibold text-gray-900">{value}</dd>
+                    <div key={label} className="flex items-start justify-between gap-4 py-4">
+                      <dt className="shrink-0 text-sm text-gray-500">{label}</dt>
+                      <dd className="min-w-0 max-w-[65%] break-words text-right text-sm font-semibold text-gray-900">{value}</dd>
                     </div>
                   ))}
                 </dl>
               </div>
             </div>
 
-            <div className="border-t border-gray-200 p-6 sm:p-8">
+            <div className="border-t border-gray-200 p-4 sm:p-8">
               <h2 className="text-base font-bold text-gray-900">오늘의 근태 진행</h2>
-              <ol className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <ol className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {progressItems.map((item, index) => {
                   const complete = checkedOut ? index <= progressStep : index < progressStep;
                   const current = !complete && index === progressStep;
@@ -371,7 +371,7 @@ export default function SelfAttendancePage() {
                         <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${complete ? "bg-blue-600 text-white" : current ? "bg-blue-100 text-blue-700" : "bg-gray-200 text-gray-500"}`}>
                           {complete ? "✓" : index + 1}
                         </span>
-                        <span className={`text-sm font-semibold ${complete || current ? "text-gray-900" : "text-gray-400"}`}>{item}</span>
+                        <span className={`min-w-0 break-keep text-sm font-semibold ${complete || current ? "text-gray-900" : "text-gray-400"}`}>{item}</span>
                       </div>
                       <p className="mt-2 pl-8 text-xs text-gray-500">{complete ? "완료" : current ? "현재 단계" : "대기"}</p>
                     </li>

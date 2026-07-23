@@ -224,7 +224,7 @@ export default function LeaveApprovalDashboard() {
   const selectedRows = rows.filter((row) => selectedIds.includes(row.leaveRequestId) && row.status === "PENDING");
 
   return (
-    <div className="mx-auto max-w-[1600px] space-y-5 pb-8">
+    <div className="mx-auto min-w-0 max-w-[1600px] space-y-4 overflow-x-clip pb-8 sm:space-y-5">
       {message && <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</div>}
       {error && (
         <div className="flex items-center justify-between rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">

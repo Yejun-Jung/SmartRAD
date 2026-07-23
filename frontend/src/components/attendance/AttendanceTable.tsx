@@ -6,7 +6,7 @@ import type { AttendanceRow, AttendanceStatus, Department } from "./types";
 import { attendanceStatusLabel } from "./types";
 
 const PAGE_SIZE = 7;
-const inputClass = "h-9 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-600 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20";
+const inputClass = "h-9 min-w-0 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-600 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20";
 const badgeStyles: Record<AttendanceStatus, string> = {
   normal: "bg-emerald-50 text-emerald-700",
   late: "bg-amber-50 text-amber-700",
@@ -80,25 +80,25 @@ export default function AttendanceTable({ rows, departments, date, loading, erro
 
   return (
     <section className="min-w-0 rounded-xl border border-gray-200 bg-white shadow-sm">
-      <div className="border-b border-gray-100 p-5">
+      <div className="border-b border-gray-100 p-4 sm:p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:flex sm:flex-wrap sm:items-center">
             <h2 className="mr-1 text-lg font-bold text-gray-900">근태 현황</h2>
-            <input type="date" value={date} onChange={(event) => { setPage(0); setCheckedIds([]); onDateChange(event.target.value); }} className={inputClass} aria-label="조회 날짜" />
+            <input type="date" value={date} onChange={(event) => { setPage(0); setCheckedIds([]); onDateChange(event.target.value); }} className={`${inputClass} w-full sm:w-auto`} aria-label="조회 날짜" />
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <select value={department} onChange={(event) => { setDepartment(event.target.value); setPage(0); setCheckedIds([]); }} className={inputClass} aria-label="부서 필터">
+          <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-center">
+            <select value={department} onChange={(event) => { setDepartment(event.target.value); setPage(0); setCheckedIds([]); }} className={`${inputClass} w-full lg:w-auto`} aria-label="부서 필터">
               <option value="">부서 전체</option>
               {departments.map((item) => <option key={item.departmentId} value={item.departmentName}>{item.departmentName}</option>)}
             </select>
-            <select value={status} onChange={(event) => { setStatus(event.target.value); setPage(0); setCheckedIds([]); }} className={inputClass} aria-label="상태 필터">
+            <select value={status} onChange={(event) => { setStatus(event.target.value); setPage(0); setCheckedIds([]); }} className={`${inputClass} w-full lg:w-auto`} aria-label="상태 필터">
               <option value="">상태 전체</option><option value="normal">정상출근</option><option value="late">지각</option><option value="earlyLeave">조퇴</option><option value="overtime">추가근무</option><option value="nightWork">야근</option><option value="absent">결근</option><option value="leave">휴가</option><option value="unknown">미확인</option>
             </select>
-            <div className="relative min-w-[190px] flex-1 sm:max-w-64">
+            <div className="relative min-w-0 flex-1 sm:col-span-2 lg:max-w-64">
               <button type="button" onClick={runSearch} aria-label="직원 검색" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-600"><MagnifyingGlassIcon className="h-4 w-4" /></button>
               <input value={searchInput} onChange={(event) => setSearchInput(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") runSearch(); }} placeholder="직원 이름 검색" className={`${inputClass} w-full pl-9`} />
             </div>
-            <button type="button" onClick={resetFilters} title="필터 초기화" className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50"><ArrowPathIcon className="h-4 w-4" /></button>
+            <button type="button" onClick={resetFilters} title="필터 초기화" className="flex h-9 w-full items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 sm:col-span-2 lg:w-9"><ArrowPathIcon className="h-4 w-4" /></button>
           </div>
         </div>
       </div>

@@ -125,9 +125,9 @@ export default function AttendanceDashboard() {
   }, [exportCsv, registerNotice]);
 
   return (
-    <div className="mx-auto max-w-[1600px] space-y-6 pb-8">
+    <div className="mx-auto min-w-0 max-w-[1600px] space-y-4 overflow-x-clip pb-8 sm:space-y-6">
       <AttendanceStats counts={counts} />
-      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_290px]">
+      <div className="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_260px] xl:grid-cols-[minmax(0,1fr)_290px] xl:gap-6">
         <AttendanceTable rows={rows} departments={departments} date={date} loading={loading} error={error} onDateChange={setDate} onFilteredRowsChange={handleFilteredRowsChange} />
         <AttendanceSidePanel counts={{ ...counts, totalEmployees: activeEmployees.length }} lastUpdated={lastUpdated} onRegister={registerNotice} onSendAbsentNotice={sendAbsentNotice} />
       </div>
