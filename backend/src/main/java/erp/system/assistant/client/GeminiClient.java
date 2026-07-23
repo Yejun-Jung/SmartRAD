@@ -20,7 +20,7 @@ import java.util.List;
 public class GeminiClient implements AiClient {
 
     private static final Logger log = LoggerFactory.getLogger(GeminiClient.class);
-    private static final int MAX_OUTPUT_TOKENS = 512;
+    private static final int MAX_OUTPUT_TOKENS = 4096;
 
     private final RestClient restClient = RestClient.create("https://generativelanguage.googleapis.com");
     private final String apiKey;

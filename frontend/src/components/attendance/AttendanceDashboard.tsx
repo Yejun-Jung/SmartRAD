@@ -67,12 +67,12 @@ export default function AttendanceDashboard() {
 
   const activeEmployees = useMemo(() => employees.filter((employee) => employee.employeeStatusCode === "ACTIVE"), [employees]);
   const counts = useMemo(() => ({
-    totalEmployees: activeEmployees.length,
+    totalEmployees: employees.length,
     normal: rows.filter((row) => row.normalizedStatus === "normal").length,
     late: rows.filter((row) => row.normalizedStatus === "late").length,
     absent: rows.filter((row) => row.normalizedStatus === "absent").length,
     leave: rows.filter((row) => row.normalizedStatus === "leave").length,
-  }), [activeEmployees.length, rows]);
+  }), [employees.length, rows]);
   const handleFilteredRowsChange = useCallback((nextRows: AttendanceRow[]) => setFilteredRows(nextRows), []);
 
   const exportCsv = useCallback(() => {
@@ -129,7 +129,7 @@ export default function AttendanceDashboard() {
       <AttendanceStats counts={counts} />
       <div className="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_260px] xl:grid-cols-[minmax(0,1fr)_290px] xl:gap-6">
         <AttendanceTable rows={rows} departments={departments} date={date} loading={loading} error={error} onDateChange={setDate} onFilteredRowsChange={handleFilteredRowsChange} />
-        <AttendanceSidePanel counts={{ ...counts, totalEmployees: activeEmployees.length }} lastUpdated={lastUpdated} onRegister={registerNotice} onSendAbsentNotice={sendAbsentNotice} />
+        <AttendanceSidePanel counts={counts} lastUpdated={lastUpdated} onRegister={registerNotice} onSendAbsentNotice={sendAbsentNotice} />
       </div>
       {showRegisterModal && (
         <AttendanceRegisterModal

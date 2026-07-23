@@ -3,7 +3,7 @@ import type { UsageSummary } from "./leaveUsageTypes";
 import { formatDays } from "./leaveUsageUtils";
 
 export default function LeaveUsageStats({ summary, loading }: { summary: UsageSummary; loading: boolean }) { const cards = [
-  { label: "전체 직원", value: `${summary.employeeCount}명`, note: "재직 직원 기준", icon: UserGroupIcon, color: "text-indigo-600", bg: "bg-indigo-50" },
+  { label: "전체 직원", value: `${summary.employeeCount}명`, note: "전체 직원 기준", icon: UserGroupIcon, color: "text-indigo-600", bg: "bg-indigo-50" },
   { label: "전체 연차 지급", value: `${formatDays(summary.totalGranted)}일`, note: "현재 잔액 합계", icon: CalendarDaysIcon, color: "text-indigo-600", bg: "bg-indigo-50" },
   { label: "전체 연차 사용", value: `${formatDays(summary.totalUsed)}일`, note: `사용률 ${summary.usageRate}%`, icon: ClipboardDocumentCheckIcon, color: "text-emerald-600", bg: "bg-emerald-50" },
   { label: "전체 연차 잔여", value: `${formatDays(summary.totalRemaining)}일`, note: `잔여율 ${summary.remainingRate}%`, icon: CheckBadgeIcon, color: "text-emerald-600", bg: "bg-emerald-50" },

@@ -2,7 +2,7 @@ import type { Employee, EmployeeUsageRow, LeaveBalance, LeaveRequest, UsageSumma
 
 export function yearRange() { const year = new Date().getFullYear(); return { startDate: `${year}-01-01`, endDate: `${year}-12-31` }; }
 export function makeRows(employees: Employee[], balances: Map<number, LeaveBalance[]>, requests: LeaveRequest[]) {
-  return employees.filter((employee) => employee.employeeStatusCode === "ACTIVE").map((employee): EmployeeUsageRow => {
+  return employees.map((employee): EmployeeUsageRow => {
     const employeeBalances = balances.get(employee.employeeId) ?? [];
     const totalDays = employeeBalances.reduce((sum, item) => sum + Number(item.totalDays), 0);
     const usedDays = employeeBalances.reduce((sum, item) => sum + Number(item.usedDays), 0);
