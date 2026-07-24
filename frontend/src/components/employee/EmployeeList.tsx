@@ -146,14 +146,14 @@ export default function EmployeeList({ onSelectEmployee, selectedId, refreshKey,
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col h-full">
-      <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+      <div className="p-4 sm:p-5 border-b border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-bold text-gray-900">직원 목록</h2>
           <span className="bg-blue-50 text-blue-600 text-xs font-bold px-2 py-0.5 rounded-full">
             {data?.totalElements || 0}
           </span>
         </div>
-        <div className="relative">
+        <div className="relative w-full sm:w-auto">
           <button
             onClick={runSearch}
             aria-label="검색"
@@ -167,7 +167,7 @@ export default function EmployeeList({ onSelectEmployee, selectedId, refreshKey,
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") runSearch(); }}
-            className="pl-9 pr-9 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all w-64"
+            className="pl-9 pr-9 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all w-full sm:w-64"
           />
           {searchInput && (
             <button
@@ -181,11 +181,11 @@ export default function EmployeeList({ onSelectEmployee, selectedId, refreshKey,
         </div>
       </div>
 
-      <div className="p-4 flex items-center gap-2">
+      <div className="p-4 flex flex-wrap items-center gap-2">
         <select
           value={sortBy}
           onChange={(e) => { setSortBy(e.target.value); setPage(0); }}
-          className="border border-gray-200 rounded-lg text-sm px-3 py-1.5 text-gray-600 bg-white hover:bg-gray-50 cursor-pointer outline-none focus:ring-2 focus:ring-blue-500"
+          className="border border-gray-200 rounded-lg text-sm px-3 py-1.5 text-gray-600 bg-white hover:bg-gray-50 cursor-pointer outline-none focus:ring-2 focus:ring-blue-500 grow sm:grow-0"
         >
           <option value="name">이름순</option>
           <option value="position">직급순</option>
@@ -193,7 +193,7 @@ export default function EmployeeList({ onSelectEmployee, selectedId, refreshKey,
         <select
           value={selectedDepartment}
           onChange={(e) => { setSelectedDepartment(e.target.value); setPage(0); }}
-          className="border border-gray-200 rounded-lg text-sm px-3 py-1.5 text-gray-600 bg-white hover:bg-gray-50 cursor-pointer outline-none focus:ring-2 focus:ring-blue-500"
+          className="border border-gray-200 rounded-lg text-sm px-3 py-1.5 text-gray-600 bg-white hover:bg-gray-50 cursor-pointer outline-none focus:ring-2 focus:ring-blue-500 grow sm:grow-0"
         >
           <option value="">부서 전체</option>
           {departments.map(d => <option key={d.departmentId} value={d.departmentId}>{d.departmentName}</option>)}
@@ -201,7 +201,7 @@ export default function EmployeeList({ onSelectEmployee, selectedId, refreshKey,
         <select
           value={selectedStatus}
           onChange={(e) => { setSelectedStatus(e.target.value); setPage(0); }}
-          className="border border-gray-200 rounded-lg text-sm px-3 py-1.5 text-gray-600 bg-white hover:bg-gray-50 cursor-pointer outline-none focus:ring-2 focus:ring-blue-500"
+          className="border border-gray-200 rounded-lg text-sm px-3 py-1.5 text-gray-600 bg-white hover:bg-gray-50 cursor-pointer outline-none focus:ring-2 focus:ring-blue-500 grow sm:grow-0"
         >
           <option value="">재직 상태 전체</option>
           <option value="ACTIVE">재직</option>
@@ -211,7 +211,7 @@ export default function EmployeeList({ onSelectEmployee, selectedId, refreshKey,
         <button
           onClick={resetFilters}
           title="검색/필터 초기화"
-          className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-colors ${
+          className={`shrink-0 w-8 h-8 flex items-center justify-center rounded-lg border transition-colors ${
             hasActiveFilters
               ? "border-blue-500 bg-blue-500 text-white hover:bg-blue-600"
               : "border-gray-200 text-gray-500 bg-white hover:bg-gray-50"
@@ -221,7 +221,7 @@ export default function EmployeeList({ onSelectEmployee, selectedId, refreshKey,
         </button>
       </div>
 
-      <div className="flex-1 overflow-x-auto">
+      <div className="flex-1 overflow-auto">
         <table className="w-full text-sm text-left">
           <thead className="text-xs text-gray-500 bg-gray-50 uppercase border-y border-gray-200">
             <tr>
@@ -284,11 +284,11 @@ export default function EmployeeList({ onSelectEmployee, selectedId, refreshKey,
         </table>
       </div>
 
-      <div className="p-4 border-t border-gray-100 flex items-center justify-between">
-        <span className="text-sm text-gray-500">
+      <div className="p-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-0">
+        <span className="text-sm text-gray-500 whitespace-nowrap shrink-0">
           {data ? `${data.number * data.size + 1}-${Math.min((data.number + 1) * data.size, data.totalElements)} / ${data.totalElements}명` : "0명"}
         </span>
-        <div className="flex items-center gap-1 mr-20">
+        <div className="flex flex-wrap items-center justify-center gap-1 sm:mr-20">
           <button
             disabled={page === 0}
             onClick={() => setPage(p => p - 1)}
@@ -297,17 +297,30 @@ export default function EmployeeList({ onSelectEmployee, selectedId, refreshKey,
             <ChevronLeftIcon className="w-4 h-4" />
           </button>
           
-          {[...Array(data?.totalPages || 0)].map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setPage(i)}
-              className={`w-8 h-8 flex items-center justify-center rounded-md text-sm font-medium ${
-                page === i ? "bg-blue-600 text-white" : "border border-gray-200 text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              {i + 1}
-            </button>
-          ))}
+          {[...Array(data?.totalPages || 0)].map((_, i) => {
+            const totalPages = data?.totalPages || 0;
+            let startWindow = Math.max(0, page - 2);
+            let endWindow = startWindow + 4;
+            if (endWindow >= totalPages) {
+              endWindow = totalPages - 1;
+              startWindow = Math.max(0, endWindow - 4);
+            }
+            const isMobileVisible = i >= startWindow && i <= endWindow;
+
+            return (
+              <button
+                key={i}
+                onClick={() => setPage(i)}
+                className={`w-8 h-8 items-center justify-center rounded-md text-sm font-medium ${
+                  isMobileVisible ? 'flex' : 'hidden sm:flex'
+                } ${
+                  page === i ? "bg-blue-600 text-white" : "border border-gray-200 text-gray-600 hover:bg-gray-50"
+                }`}
+              >
+                {i + 1}
+              </button>
+            );
+          })}
 
           <button 
             disabled={page >= (data?.totalPages || 1) - 1}

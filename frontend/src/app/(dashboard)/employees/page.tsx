@@ -49,19 +49,24 @@ export default function EmployeesPage() {
       {role === "ADMIN" && <EmployeeStats refreshKey={refreshKey} />}
       
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-0">
-        <EmployeeList
-          refreshKey={refreshKey}
-          onSelectEmployee={setSelectedEmployeeId}
-          selectedId={selectedEmployeeId}
-          role={role}
-        />
-        <EmployeeDetail
-          refreshKey={refreshKey}
-          employeeId={selectedEmployeeId}
-          onEditClick={setEditEmployee}
-          onDeleteClick={handleDelete}
-          role={role}
-        />
+        <div className={`h-full min-h-0 ${selectedEmployeeId ? 'hidden lg:block' : 'block'}`}>
+          <EmployeeList
+            refreshKey={refreshKey}
+            onSelectEmployee={setSelectedEmployeeId}
+            selectedId={selectedEmployeeId}
+            role={role}
+          />
+        </div>
+        <div className={`h-full min-h-0 ${selectedEmployeeId ? 'block' : 'hidden lg:block'}`}>
+          <EmployeeDetail
+            refreshKey={refreshKey}
+            employeeId={selectedEmployeeId}
+            onEditClick={setEditEmployee}
+            onDeleteClick={handleDelete}
+            onBackClick={() => setSelectedEmployeeId(null)}
+            role={role}
+          />
+        </div>
       </div>
 
       {editEmployee && role === "ADMIN" && (
