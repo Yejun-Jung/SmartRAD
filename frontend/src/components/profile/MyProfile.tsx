@@ -366,9 +366,9 @@ export default function MyProfile() {
 
   return (
     <>
-      <div className="flex flex-col lg:flex-row gap-6 h-full min-h-0">
+      <div className="flex flex-col lg:grid lg:grid-cols-3 lg:grid-rows-[auto_1fr] gap-6 h-full min-h-0">
         {/* Left: Basic Info */}
-        <div className="w-full lg:w-1/3 flex flex-col gap-6 min-h-0">
+        <div className="order-2 lg:order-1 lg:col-span-1 lg:row-span-2 w-full flex flex-col gap-6 min-h-0">
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 relative">
             <button 
               type="button" 
@@ -455,48 +455,41 @@ export default function MyProfile() {
           </div>
         </div>
 
-        {/* Right: Widgets & Tabs Content */}
-        <div className="w-full lg:w-2/3 flex flex-col gap-6 min-h-0">
-          
-          {/* Top Widgets */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center">
-                  <CheckBadgeIcon className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500 font-medium">올해 남은 총 연차</p>
-                  <h3 className="text-2xl font-bold text-gray-900 mt-0.5">
-                    {totalRemainLeave} <span className="text-sm font-medium text-gray-500 ml-0.5">일</span>
-                  </h3>
-                </div>
-              </div>
+        {/* Top Widgets */}
+        <div className="order-1 lg:order-2 lg:col-span-2 grid grid-cols-2 gap-3 sm:gap-6">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 sm:p-5 flex flex-col sm:flex-row items-center sm:items-center gap-2 sm:gap-4">
+            <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center shrink-0">
+              <CheckBadgeIcon className="w-4 h-4 sm:w-6 sm:h-6" />
             </div>
-
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center">
-                  <ClockIcon className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500 font-medium">오늘 출근 시간</p>
-                  <h3 className="text-2xl font-bold text-gray-900 mt-0.5">
-                    {todayAttendance?.checkInTime?.substring(11, 16) || "미출근"}
-                    {todayAttendance?.checkInTime && <span className="text-sm font-medium text-gray-500 ml-1">({ATTENDANCE_STATUS_LABELS[todayAttendance.attendanceStatusCode] ?? todayAttendance.attendanceStatusCode})</span>}
-                  </h3>
-                </div>
-              </div>
+            <div className="text-center sm:text-left flex-1 min-w-0">
+              <p className="text-[11px] sm:text-sm text-gray-500 font-medium truncate">올해 남은 총 연차</p>
+              <h3 className="text-lg sm:text-2xl font-bold text-gray-900 mt-0.5">
+                {totalRemainLeave} <span className="text-xs sm:text-sm font-medium text-gray-500 ml-0.5">일</span>
+              </h3>
             </div>
           </div>
 
-          {/* Tab Content Area */}
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm flex-1 flex flex-col min-h-0 overflow-hidden">
-            <div className="border-b border-gray-100 bg-gray-50/50 flex items-end px-4 pt-4 gap-2">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 sm:p-5 flex flex-col sm:flex-row items-center sm:items-center gap-2 sm:gap-4">
+            <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center shrink-0">
+              <ClockIcon className="w-4 h-4 sm:w-6 sm:h-6" />
+            </div>
+            <div className="text-center sm:text-left flex-1 min-w-0">
+              <p className="text-[11px] sm:text-sm text-gray-500 font-medium truncate">오늘 출근 시간</p>
+              <h3 className="text-lg sm:text-2xl font-bold text-gray-900 mt-0.5">
+                {todayAttendance?.checkInTime?.substring(11, 16) || "미출근"}
+                {todayAttendance?.checkInTime && <span className="hidden sm:inline-block text-[11px] sm:text-sm font-medium text-gray-500 sm:ml-1">({ATTENDANCE_STATUS_LABELS[todayAttendance.attendanceStatusCode] ?? todayAttendance.attendanceStatusCode})</span>}
+              </h3>
+            </div>
+          </div>
+        </div>
+
+        {/* Tab Content Area */}
+        <div className="order-3 lg:order-3 lg:col-span-2 w-full bg-white rounded-xl border border-gray-200 shadow-sm flex-1 flex flex-col min-h-0 overflow-hidden">
+            <div className="border-b border-gray-100 bg-gray-50/50 flex items-end px-2 sm:px-4 pt-4 gap-1 sm:gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden">
               <button 
                 type="button"
                 onClick={() => setActiveTab("appointments")}
-                className={`px-4 py-3 text-sm font-bold border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'appointments' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300'}`}
+                className={`px-3 sm:px-4 py-3 text-[13px] sm:text-sm font-bold border-b-2 flex items-center gap-1.5 sm:gap-2 transition-colors whitespace-nowrap shrink-0 ${activeTab === 'appointments' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300'}`}
               >
                 <UserIcon className="w-4 h-4" />
                 발령 이력
@@ -504,7 +497,7 @@ export default function MyProfile() {
               <button 
                 type="button"
                 onClick={() => setActiveTab("certificates")}
-                className={`px-4 py-3 text-sm font-bold border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'certificates' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300'}`}
+                className={`px-3 sm:px-4 py-3 text-[13px] sm:text-sm font-bold border-b-2 flex items-center gap-1.5 sm:gap-2 transition-colors whitespace-nowrap shrink-0 ${activeTab === 'certificates' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300'}`}
               >
                 <DocumentTextIcon className="w-4 h-4" />
                 증명서 내역
@@ -512,7 +505,7 @@ export default function MyProfile() {
               <button 
                 type="button"
                 onClick={() => setActiveTab("payroll")}
-                className={`px-4 py-3 text-sm font-bold border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'payroll' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300'}`}
+                className={`px-3 sm:px-4 py-3 text-[13px] sm:text-sm font-bold border-b-2 flex items-center gap-1.5 sm:gap-2 transition-colors whitespace-nowrap shrink-0 ${activeTab === 'payroll' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300'}`}
               >
                 <CurrencyDollarIcon className="w-4 h-4" />
                 급여 내역
@@ -520,7 +513,7 @@ export default function MyProfile() {
               <button 
                 type="button"
                 onClick={() => setActiveTab("documents")}
-                className={`px-4 py-3 text-sm font-bold border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'documents' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300'}`}
+                className={`px-3 sm:px-4 py-3 text-[13px] sm:text-sm font-bold border-b-2 flex items-center gap-1.5 sm:gap-2 transition-colors whitespace-nowrap shrink-0 ${activeTab === 'documents' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300'}`}
               >
                 <DocumentTextIcon className="w-4 h-4" />
                 첨부 서류
@@ -641,7 +634,6 @@ export default function MyProfile() {
               )}
             </div>
           </div>
-        </div>
       </div>
 
       {/* Edit Modal */}
