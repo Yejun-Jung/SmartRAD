@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { DocumentPlusIcon, ClockIcon, CheckCircleIcon, XCircleIcon, CheckBadgeIcon, DocumentTextIcon } from "@heroicons/react/24/outline";
 import { certificateTypeLabel, type CertificateIssueResponse, statusBadge } from "@/components/certificate/types";
 import MyCertificateRegisterModal from "@/components/certificate/MyCertificateRegisterModal";
+import PrintableCertificate from "@/components/certificate/PrintableCertificate";
 import Modal, { ModalCancelButton } from "@/components/common/Modal";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081/api";
@@ -20,6 +21,8 @@ export default function MyCertificatesPage() {
   const [showModal, setShowModal] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [employeeId, setEmployeeId] = useState<number | null>(null);
+  const [employeeData, setEmployeeData] = useState<any>(null);
+  const [printData, setPrintData] = useState<any>(null);
 
   useEffect(() => {
     const storedId = window.localStorage.getItem("employeeId") ?? window.sessionStorage.getItem("employeeId");
@@ -35,14 +38,20 @@ export default function MyCertificatesPage() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`${API_BASE_URL}/certificate-issues/me`, {
-          headers: authHeaders(),
-        });
-        if (res.ok) {
-          const json = await res.json();
-          if (!cancelled) setData(json);
+        const [resIssues, resEmp] = await Promise.all([
+          fetch(`${API_BASE_URL}/certificate-issues/me`, { headers: authHeaders() }),
+          fetch(`${API_BASE_URL}/employees/${employeeId}`, { headers: authHeaders() })
+        ]);
+        
+        if (resIssues.ok && resEmp.ok) {
+          const jsonIssues = await resIssues.json();
+          const jsonEmp = await resEmp.json();
+          if (!cancelled) {
+            setData(jsonIssues);
+            setEmployeeData(jsonEmp);
+          }
         } else {
-          if (!cancelled) setError("증명서 내역을 불러오는데 실패했습니다.");
+          if (!cancelled) setError("데이터를 불러오는데 실패했습니다.");
         }
       } catch {
         if (!cancelled) setError("네트워크 오류가 발생했습니다.");
@@ -70,8 +79,35 @@ export default function MyCertificatesPage() {
     return <ClockIcon className="w-5 h-5 text-amber-500" />;
   };
 
+  const handlePrint = (row: CertificateIssueResponse) => {
+    if (!employeeData) {
+      alert("사원 정보를 불러오는 중입니다. 잠시 후 다시 시도해주세요.");
+      return;
+    }
+    
+    setPrintData({
+      certificateType: row.certificateType,
+      employeeName: employeeData.name,
+      birthDate: employeeData.birthDate,
+      address: employeeData.address,
+      departmentName: employeeData.departmentName,
+      positionName: employeeData.positionName,
+      hireDate: employeeData.hireDate,
+      resignationDate: employeeData.resignationDate,
+      purpose: row.purpose,
+      issueDate: row.applicationDate,
+      issueNumber: row.applicationNo
+    });
+    
+    setTimeout(() => {
+      window.print();
+    }, 100);
+  };
+
   return (
-    <div className="max-w-[1600px] mx-auto p-6 space-y-6">
+    <>
+      <PrintableCertificate data={printData} />
+      <div className="max-w-[1600px] mx-auto p-6 space-y-6 print:hidden">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">제증명서 신청/조회</h1>
@@ -95,7 +131,79 @@ export default function MyCertificatesPage() {
           </span>
         </div>
         
-        <div className="overflow-x-auto">
+        {/* Mobile View */}
+        <div className="block md:hidden">
+          {loading ? (
+             <div className="p-8 text-center text-gray-500 flex justify-center items-center gap-2">
+               <ArrowPathIcon className="w-5 h-5 animate-spin" />
+               내역을 불러오는 중입니다...
+             </div>
+          ) : error ? (
+             <div className="p-8 text-center text-rose-500">{error}</div>
+          ) : data.length === 0 ? (
+             <div className="p-8 flex flex-col items-center justify-center text-gray-500">
+               <DocumentTextIcon className="w-10 h-10 text-gray-300 mb-2" />
+               <p className="text-sm font-medium text-gray-900 mb-1">신청 내역이 없습니다</p>
+             </div>
+          ) : (
+             <div className="divide-y divide-gray-100">
+               {data.map((row) => {
+                  const badge = statusBadge(row);
+                  return (
+                    <div key={row.employeeCertificateIssueId} className="p-4 space-y-3 hover:bg-gray-50/50 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-gray-900">{certificateTypeLabel(row.certificateType)}</span>
+                        <div className="flex items-center gap-1.5">
+                          {getStatusIcon(row.approvalStatus, row.issueStatus)}
+                          <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${badge.className}`}>
+                            {badge.label}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-sm text-gray-600 space-y-1.5 bg-gray-50 rounded-lg p-3">
+                        <div className="flex justify-between items-start gap-4">
+                          <span className="text-gray-400 shrink-0">신청일</span>
+                          <span className="text-right break-words">{row.applicationDate}</span>
+                        </div>
+                        <div className="flex justify-between items-start gap-4">
+                          <span className="text-gray-400 shrink-0">신청번호</span>
+                          <span className="font-mono text-right break-words">{row.applicationNo}</span>
+                        </div>
+                        <div className="flex justify-between items-start gap-4">
+                          <span className="text-gray-400 shrink-0">용도</span>
+                          <span className="text-right break-words">{row.purpose || '-'}</span>
+                        </div>
+                      </div>
+                      
+                      {/* Action Buttons */}
+                      {(row.memo || row.issueStatus === "ISSUED") && (
+                        <div className="pt-2 flex flex-wrap gap-2">
+                          {row.approvalStatus === "REJECTED" && row.memo && (
+                            <button onClick={() => setMemoModal({ title: "반려 사유", content: row.memo! })} className="flex-1 text-xs px-3 py-2 bg-rose-50 text-rose-600 rounded-md border border-rose-200 hover:bg-rose-100 font-medium transition-colors">
+                              반려사유
+                            </button>
+                          )}
+                          {row.approvalStatus !== "REJECTED" && row.memo && (
+                            <button onClick={() => setMemoModal({ title: "메모", content: row.memo! })} className="flex-1 text-xs px-3 py-2 bg-gray-50 text-gray-600 rounded-md border border-gray-200 hover:bg-gray-100 font-medium transition-colors">
+                              메모 보기
+                            </button>
+                          )}
+                          {row.issueStatus === "ISSUED" && (
+                            <button onClick={() => handlePrint(row)} className="flex-1 text-xs px-3 py-2 bg-blue-50 text-blue-600 rounded-md border border-blue-200 hover:bg-blue-100 font-medium flex items-center justify-center gap-1 transition-colors">
+                              인쇄
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+               })}
+             </div>
+          )}
+        </div>
+
+        {/* Desktop View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-[800px]">
             <thead className="bg-gray-50/50 text-sm text-gray-500 font-medium border-b border-gray-200">
               <tr>
@@ -169,7 +277,7 @@ export default function MyCertificatesPage() {
                             </button>
                           )}
                           {row.issueStatus === "ISSUED" && (
-                            <button onClick={() => window.print()} className="text-xs px-2.5 py-1.5 bg-blue-50 text-blue-600 rounded-md border border-blue-200 hover:bg-blue-100 font-medium inline-flex items-center gap-1">
+                            <button onClick={() => handlePrint(row)} className="text-xs px-2.5 py-1.5 bg-blue-50 text-blue-600 rounded-md border border-blue-200 hover:bg-blue-100 font-medium inline-flex items-center gap-1">
                               인쇄
                             </button>
                           )}
@@ -203,6 +311,7 @@ export default function MyCertificatesPage() {
         </Modal>
       )}
     </div>
+    </>
   );
 }
 
